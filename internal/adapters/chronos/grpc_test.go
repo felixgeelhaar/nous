@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/felixgeelhaar/nous/internal/circuit"
+
 	chronosv1 "github.com/felixgeelhaar/chronos/api/proto/chronos/v1"
 	"github.com/felixgeelhaar/nous/internal/ports"
 	"github.com/google/uuid"
@@ -53,7 +55,7 @@ func setupTestServer(t *testing.T, srv chronosv1.ChronosServiceServer) (ports.Ch
 		t.Fatalf("failed to dial test server: %v", err)
 	}
 	client := chronosv1.NewChronosServiceClient(conn)
-	return &Adapter{conn: conn, client: client}, listener
+	return &Adapter{conn: conn, client: client, breaker: circuit.New(circuit.DefaultConfig())}, listener
 }
 
 func TestNewGRPC_EmptyAddr_ReturnsUnconfigured(t *testing.T) {
@@ -283,7 +285,7 @@ func TestGetSignals_MultipleSignals_ReturnsAll(t *testing.T) {
 }
 
 func TestAdapter_Close_NilConn_NoError(t *testing.T) {
-	adapter := &Adapter{}
+	adapter := &Adapter{breaker: circuit.New(circuit.DefaultConfig())}
 	if err := adapter.Close(); err != nil {
 		t.Fatalf("Close() error: %v", err)
 	}

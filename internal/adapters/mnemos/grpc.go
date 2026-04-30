@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/felixgeelhaar/mnemos/proto/gen/mnemos/v1"
+	"github.com/felixgeelhaar/nous/internal/circuit"
+
+	mnemosv1 "github.com/felixgeelhaar/mnemos/proto/gen/mnemos/v1"
 	"github.com/felixgeelhaar/nous/internal/domain"
 	"github.com/felixgeelhaar/nous/internal/ports"
 	"google.golang.org/grpc"
@@ -22,9 +24,10 @@ import (
 
 // Adapter implements ports.MnemosClient over Mnemos gRPC.
 type Adapter struct {
-	client     mnemosv1.MnemosServiceClient
-	conn       *grpc.ClientConn
+	client      mnemosv1.MnemosServiceClient
+	conn        *grpc.ClientConn
 	bearerToken string
+	breaker     *circuit.Breaker
 }
 
 // callOpts returns grpc.CallOption with bearer token if configured.
@@ -41,7 +44,7 @@ func (a *Adapter) callOpts() []grpc.CallOption {
 // If bearerToken is non-empty, it is attached to each request via gRPC metadata.
 func NewGRPC(addr, tlsCertFile, bearerToken string) (*Adapter, error) {
 	if addr == "" {
-		return &Adapter{}, nil
+		return &Adapter{breaker: circuit.New(circuit.DefaultConfig())}, nil
 	}
 
 	opts := []grpc.DialOption{}
@@ -62,6 +65,7 @@ func NewGRPC(addr, tlsCertFile, bearerToken string) (*Adapter, error) {
 	adapter := &Adapter{
 		client: mnemosv1.NewMnemosServiceClient(conn),
 		conn:   conn,
+		breaker: circuit.New(circuit.DefaultConfig()),
 	}
 	if bearerToken != "" {
 		adapter.bearerToken = bearerToken
@@ -69,7 +73,23 @@ func NewGRPC(addr, tlsCertFile, bearerToken string) (*Adapter, error) {
 	return adapter, nil
 }
 
-// Close tears down the underlying gRPC connection.
+// AdapterStatus returns the current health status of the adapter.
+// Returns "healthy", "degraded" (circuit half-open), or "unhealthy" (circuit open).
+func (a *Adapter) AdapterStatus() string {
+	if a.breaker == nil {
+		return "unconfigured"
+	}
+	switch a.breaker.State() {
+	case circuit.StateClosed:
+		return "healthy"
+	case circuit.StateHalfOpen:
+		return "degraded"
+	case circuit.StateOpen:
+		return "unhealthy"
+	default:
+		return "unknown"
+	}
+}
 func (a *Adapter) Close() error {
 	if a.conn != nil {
 		return a.conn.Close()
@@ -88,29 +108,33 @@ func (a *Adapter) Recall(ctx context.Context, q ports.RecallQuery) ([]domain.Mem
 	if a.client == nil {
 		return nil, ports.ErrClientNotConfigured
 	}
-	limit := int32(q.Limit)
-	if limit <= 0 {
-		limit = 10
-	}
-	resp, err := a.client.ListEvents(ctx, &mnemosv1.ListEventsRequest{
-		Pagination: &mnemosv1.Pagination{Limit: limit},
-	}, a.callOpts()...)
-	if err != nil {
-		return nil, fmt.Errorf("mnemos grpc: ListEvents: %w", err)
-	}
-	refs := make([]domain.MemoryRef, 0, len(resp.Events))
-	for _, evt := range resp.Events {
-		var occurredAt time.Time
-		if evt.Timestamp != nil {
-			occurredAt = evt.Timestamp.AsTime()
+	var refs []domain.MemoryRef
+	err := a.breaker.Call(ctx, func() error {
+		limit := int32(q.Limit)
+		if limit <= 0 {
+			limit = 10
 		}
-		refs = append(refs, domain.MemoryRef{
-			ID:         evt.Id,
-			Kind:       "event",
-			OccurredAt: occurredAt,
-		})
-	}
-	return refs, nil
+		resp, err := a.client.ListEvents(ctx, &mnemosv1.ListEventsRequest{
+			Pagination: &mnemosv1.Pagination{Limit: limit},
+		}, a.callOpts()...)
+		if err != nil {
+			return fmt.Errorf("mnemos grpc: ListEvents: %w", err)
+		}
+		refs = make([]domain.MemoryRef, 0, len(resp.Events))
+		for _, evt := range resp.Events {
+			var occurredAt time.Time
+			if evt.Timestamp != nil {
+				occurredAt = evt.Timestamp.AsTime()
+			}
+			refs = append(refs, domain.MemoryRef{
+				ID:         evt.Id,
+				Kind:       "event",
+				OccurredAt: occurredAt,
+			})
+		}
+		return nil
+	})
+	return refs, err
 }
 
 // AppendEvent records a single event in Mnemos.
@@ -118,30 +142,35 @@ func (a *Adapter) AppendEvent(ctx context.Context, evt ports.MnemosEvent) (strin
 	if a.client == nil {
 		return "", ports.ErrClientNotConfigured
 	}
-	pbEvt := &mnemosv1.Event{
-		Id:            evt.Subject + "_" + time.Now().UTC().Format(time.RFC3339Nano),
-		Content:       evt.Kind,
-		SourceInputId: evt.Subject,
-		Timestamp:     timestamppb.New(evt.OccurredAt),
-		Metadata:      make(map[string]string, len(evt.Body)),
-	}
-	for k, v := range evt.Body {
-		if s, ok := v.(string); ok {
-			pbEvt.Metadata[k] = s
-		} else {
-			pbEvt.Metadata[k] = fmt.Sprintf("%v", v)
+	var eventID string
+	err := a.breaker.Call(ctx, func() error {
+		pbEvt := &mnemosv1.Event{
+			Id:            evt.Subject + "_" + time.Now().UTC().Format(time.RFC3339Nano),
+			Content:       evt.Kind,
+			SourceInputId: evt.Subject,
+			Timestamp:     timestamppb.New(evt.OccurredAt),
+			Metadata:      make(map[string]string, len(evt.Body)),
 		}
-	}
-	resp, err := a.client.AppendEvents(ctx, &mnemosv1.AppendEventsRequest{
-		Events: []*mnemosv1.Event{pbEvt},
-	}, a.callOpts()...)
-	if err != nil {
-		return "", fmt.Errorf("mnemos grpc: AppendEvents: %w", err)
-	}
-	if resp.Accepted == 0 {
-		return "", fmt.Errorf("mnemos grpc: event not accepted")
-	}
-	return pbEvt.Id, nil
+		for k, v := range evt.Body {
+			if s, ok := v.(string); ok {
+				pbEvt.Metadata[k] = s
+			} else {
+				pbEvt.Metadata[k] = fmt.Sprintf("%v", v)
+			}
+		}
+		resp, err := a.client.AppendEvents(ctx, &mnemosv1.AppendEventsRequest{
+			Events: []*mnemosv1.Event{pbEvt},
+		}, a.callOpts()...)
+		if err != nil {
+			return fmt.Errorf("mnemos grpc: AppendEvents: %w", err)
+		}
+		if resp.Accepted == 0 {
+			return fmt.Errorf("mnemos grpc: event not accepted")
+		}
+		eventID = pbEvt.Id
+		return nil
+	})
+	return eventID, err
 }
 
 // bearerTokenCreds implements grpc.PerRPCCredentials for bearer token auth.

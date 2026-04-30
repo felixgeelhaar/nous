@@ -209,12 +209,13 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	out := map[string]any{}
 	if s.metrics != nil {
-		out["counters"] = s.metrics.Snapshot()
-		out["risk_distribution"] = s.metrics.RiskDistribution()
+		s.metrics.Handler().ServeHTTP(w, r)
+		return
 	}
-	respond(w, out)
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("# Metrics endpoint not configured\n"))
 }
 
 // --- request/response DTOs ---

@@ -46,25 +46,24 @@ func TestHandler_NoIDWhenMissing(t *testing.T) {
 
 func TestMetrics_Snapshot(t *testing.T) {
 	m := NewMetrics()
-	m.IncCommitmentsExtracted(3)
-	m.IncEvaluationsRun(5)
-	m.IncInterventionsCreated(2)
+	m.IncCommitmentsExtracted("success", 3)
+	m.IncEvaluationsRun("success", 5)
+	m.IncInterventionsCreated("created", 2)
 
+	// Snapshot is now a stub for Prometheus - returns empty
 	snap := m.Snapshot()
-	require.Equal(t, uint64(3), snap["commitments_extracted"])
-	require.Equal(t, uint64(5), snap["evaluations_run"])
-	require.Equal(t, uint64(2), snap["interventions_created"])
+	require.Equal(t, 0, len(snap))
 }
 
 func TestMetrics_RiskDistribution(t *testing.T) {
 	m := NewMetrics()
-	m.RecordRiskBucket("high")
-	m.RecordRiskBucket("high")
-	m.RecordRiskBucket("low")
+	m.ObserveRiskScore("high", 0.9)
+	m.ObserveRiskScore("high", 0.95)
+	m.ObserveRiskScore("low", 0.2)
 
+	// RiskDistribution is now a stub for Prometheus - returns empty
 	dist := m.RiskDistribution()
-	require.Equal(t, uint64(2), dist["high"])
-	require.Equal(t, uint64(1), dist["low"])
+	require.Equal(t, 0, len(dist))
 }
 
 func TestHTTPMiddleware_SetsCorrelationID(t *testing.T) {

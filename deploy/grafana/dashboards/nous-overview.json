@@ -1,0 +1,166 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Nous Service Overview",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Commitments Extracted",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "rate(nous_commitments_extracted_total[5m])", "legendFormat": "Extractions/sec" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 }
+    },
+    {
+      "title": "Evaluations Run",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "rate(nous_evaluations_run_total[5m])", "legendFormat": "Evals/sec" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 }
+    },
+    {
+      "title": "Interventions Created",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "rate(nous_interventions_created_total[5m])", "legendFormat": "Interventions/sec" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 }
+    },
+    {
+      "title": "HTTP Request Duration (p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, rate(nous_http_request_duration_seconds_bucket[5m]))", "legendFormat": "p99 latency" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.1 }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 }
+    },
+    {
+      "title": "gRPC Request Duration (p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, rate(nous_grpc_request_duration_seconds_bucket[5m]))", "legendFormat": "p99 latency" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.1 }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 }
+    },
+    {
+      "title": "Risk Score Distribution",
+      "type": "histogram",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "nous_risk_score_bucket", "legendFormat": "{{outcome}}" }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 }
+    },
+    {
+      "title": "SLOs",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 }
+    },
+    {
+      "title": "Uptime (30d)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "avg(up{job=\"nous\"}) * 100", "legendFormat": "Uptime %" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 99.9 },
+              { "color": "green", "value": 99.95 }
+            ]
+          },
+          "unit": "%"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 26 }
+    },
+    {
+      "title": "Error Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum(rate(nous_http_request_duration_seconds_count{status=\"error\"}[5m])) / sum(rate(nous_http_request_duration_seconds_count[5m])) * 100", "legendFormat": "Error %" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.1 }
+            ]
+          },
+          "unit": "%"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 26 }
+    },
+    {
+      "title": "p99 Latency < 100ms",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, rate(nous_http_request_duration_seconds_bucket[5m])) < 0.1", "legendFormat": "p99 < 100ms" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 26 }
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["nous", "slo", "production"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": { "query": "prometheus" }
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Nous Production Dashboard",
+  "uid": "nous-production"
+}

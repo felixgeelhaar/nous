@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/felixgeelhaar/nous/internal/circuit"
+
 	mnemosv1 "github.com/felixgeelhaar/mnemos/proto/gen/mnemos/v1"
 	"github.com/felixgeelhaar/nous/internal/ports"
 	"github.com/stretchr/testify/require"
@@ -69,9 +71,7 @@ func TestAdapter_Recall(t *testing.T) {
 	conn, cleanup := startMockMnemosServer(t)
 	defer cleanup()
 
-	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn)}
-
-	// Seed the mock with two events.
+	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn), breaker: circuit.New(circuit.DefaultConfig())}
 	ctx := context.Background()
 	_, err := a.client.AppendEvents(ctx, &mnemosv1.AppendEventsRequest{
 		Events: []*mnemosv1.Event{
@@ -93,7 +93,7 @@ func TestAdapter_Recall_DefaultLimit(t *testing.T) {
 	conn, cleanup := startMockMnemosServer(t)
 	defer cleanup()
 
-	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn)}
+	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn), breaker: circuit.New(circuit.DefaultConfig())}
 	ctx := context.Background()
 
 	_, err := a.client.AppendEvents(ctx, &mnemosv1.AppendEventsRequest{
@@ -113,7 +113,7 @@ func TestAdapter_AppendEvent(t *testing.T) {
 	conn, cleanup := startMockMnemosServer(t)
 	defer cleanup()
 
-	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn)}
+	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn), breaker: circuit.New(circuit.DefaultConfig())}
 	ctx := context.Background()
 
 	id, err := a.AppendEvent(ctx, ports.MnemosEvent{
@@ -143,7 +143,7 @@ func TestAdapter_AppendEvent_NonStringBody(t *testing.T) {
 	conn, cleanup := startMockMnemosServer(t)
 	defer cleanup()
 
-	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn)}
+	a := &Adapter{client: mnemosv1.NewMnemosServiceClient(conn), breaker: circuit.New(circuit.DefaultConfig())}
 	ctx := context.Background()
 
 	_, err := a.AppendEvent(ctx, ports.MnemosEvent{

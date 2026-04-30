@@ -105,7 +105,7 @@ func (e *Extractor) Extract(ctx context.Context, in llm.ExtractInput) (ExtractRe
 		res.Saved = append(res.Saved, c.ID)
 	}
 	if e.metrics != nil {
-		e.metrics.IncCommitmentsExtracted(uint64(len(res.Saved)))
+		e.metrics.IncCommitmentsExtracted("success", len(res.Saved))
 	}
 
 	// One decision per Extract call. Inputs and outcome carry the

@@ -1,0 +1,58 @@
+version: 1
+language: go
+policy:
+  default:
+    min: 80
+  domains:
+    - name: cmd
+      match:
+        - ./cmd/...
+      min: 80
+    - name: config
+      match:
+        - ./internal/config/...
+      min: 80
+    - name: coordination
+      match:
+        - ./internal/coordination/...
+      min: 80
+    - name: domain
+      match:
+        - ./internal/domain/...
+      min: 90
+    - name: intervention
+      match:
+        - ./internal/intervention/...
+      min: 83.7
+    - name: llm
+      match:
+        - ./internal/llm/...
+      min: 98
+    - name: observability
+      match:
+        - ./internal/observability/...
+      min: 80
+    - name: pipeline
+      match:
+        - ./internal/pipeline/...
+      min: 80
+    - name: ports
+      match:
+        - ./internal/ports/...
+      min: 80
+    - name: risk
+      match:
+        - ./internal/risk/...
+      min: 89.3
+    - name: store
+      match:
+        - ./internal/store/...
+      min: 80
+    - name: transport
+      match:
+        - ./internal/transport/...
+      min: 80
+    - name: worker
+      match:
+        - ./internal/worker/...
+      min: 82.6

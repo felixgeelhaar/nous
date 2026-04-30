@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(go version *)",
+      "Bash(go mod *)",
+      "Bash(go test *)",
+      "Bash(go build *)",
+      "Bash(go get *)",
+      "Bash(gh api *)",
+      "Bash(gh repo *)",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);[print\\(f['name'],f['type']\\) for f in d]\")",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);[print\\(f['name']\\) for f in d]\")",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);[print\\(f['name'],f['type']\\) for f in d if f['type']=='file' and f['name'].endswith\\('.go'\\)]\")",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);[print\\(f['name']\\) for f in d if f['type']=='file']\")",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);[print\\(f['name']\\) for f in d if f['type']=='file' and 'approval' in f['name'].lower\\(\\)]\")",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);[print\\(f['name']\\) for f in d if f['type']=='file' and f['name'].endswith\\('.go'\\)]\")"
+    ]
+  }
+}

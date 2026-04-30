@@ -132,7 +132,7 @@ type EvaluateResult struct {
 // continues. This keeps a single bad row from stalling the worker.
 func (e *Evaluator) Evaluate(ctx context.Context, opts EvaluateOptions) (EvaluateResult, error) {
 	if e.metrics != nil {
-		e.metrics.IncEvaluationsRun(1)
+		e.metrics.IncEvaluationsRun("success", 1)
 	}
 
 	ctx, span := observability.Tracer.Start(ctx, "pipeline.Evaluate")
@@ -157,7 +157,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, opts EvaluateOptions) (Evaluat
 
 		assessment := e.risk.EvaluateCommitment(c, signals, memories, now)
 		if e.metrics != nil {
-			e.metrics.RecordRiskBucket(riskLabel(assessment.Score))
+			e.metrics.ObserveRiskScore("scored", assessment.Score)
 		}
 
 		if err := e.commitments.UpdateRisk(ctx, c.ID, assessment.Score, now); err != nil {
@@ -181,7 +181,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, opts EvaluateOptions) (Evaluat
 		}
 		result.Interventions = append(result.Interventions, iv.ID)
 		if e.metrics != nil {
-			e.metrics.IncInterventionsCreated(1)
+			e.metrics.IncInterventionsCreated("created", 1)
 		}
 	}
 

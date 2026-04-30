@@ -5,22 +5,25 @@ package chronos
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc/credentials"
+
+	"github.com/felixgeelhaar/nous/internal/circuit"
 
 	chronosv1 "github.com/felixgeelhaar/chronos/api/proto/chronos/v1"
 	"github.com/felixgeelhaar/nous/internal/domain"
 	"github.com/felixgeelhaar/nous/internal/ports"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Adapter implements ports.ChronosClient over the Chronos gRPC API.
 type Adapter struct {
-	conn       *grpc.ClientConn
-	client     chronosv1.ChronosServiceClient
+	conn        *grpc.ClientConn
+	client      chronosv1.ChronosServiceClient
 	bearerToken string
+	breaker     *circuit.Breaker
 }
 
 // callOpts returns grpc.CallOption with bearer token if configured.
@@ -38,7 +41,7 @@ func (a *Adapter) callOpts() []grpc.CallOption {
 // If bearerToken is non-empty, it is attached to each request via gRPC metadata.
 func NewGRPC(addr, tlsCertFile, bearerToken string) (*Adapter, error) {
 	if addr == "" {
-		return &Adapter{}, nil
+		return &Adapter{breaker: circuit.New(circuit.DefaultConfig())}, nil
 	}
 
 	opts := []grpc.DialOption{}
@@ -59,11 +62,30 @@ func NewGRPC(addr, tlsCertFile, bearerToken string) (*Adapter, error) {
 	adapter := &Adapter{
 		conn:   conn,
 		client: chronosv1.NewChronosServiceClient(conn),
+		breaker: circuit.New(circuit.DefaultConfig()),
 	}
 	if bearerToken != "" {
 		adapter.bearerToken = bearerToken
 	}
 	return adapter, nil
+}
+
+// AdapterStatus returns the current health status of the adapter.
+// Returns "healthy", "degraded" (circuit half-open), or "unhealthy" (circuit open).
+func (a *Adapter) AdapterStatus() string {
+	if a.breaker == nil {
+		return "unconfigured"
+	}
+	switch a.breaker.State() {
+	case circuit.StateClosed:
+		return "healthy"
+	case circuit.StateHalfOpen:
+		return "degraded"
+	case circuit.StateOpen:
+		return "unhealthy"
+	default:
+		return "unknown"
+	}
 }
 
 // Close tears down the underlying gRPC connection.
@@ -79,39 +101,43 @@ func (a *Adapter) GetSignals(ctx context.Context, filter ports.SignalFilter) ([]
 	if a.client == nil {
 		return nil, ports.ErrClientNotConfigured
 	}
-	scopeID, err := uuid.Parse(filter.ScopeID)
-	if err != nil {
-		return nil, fmt.Errorf("chronos grpc: invalid scope_id %q: %w", filter.ScopeID, err)
-	}
+	var signals []domain.ChronosSignal
+	err := a.breaker.Call(ctx, func() error {
+		scopeID, err := uuid.Parse(filter.ScopeID)
+		if err != nil {
+			return fmt.Errorf("chronos grpc: invalid scope_id %q: %w", filter.ScopeID, err)
+		}
 
-	req := &chronosv1.ListSignalsRequest{
-		ScopeId: scopeID.String(),
-		Limit:   int32(filter.Limit),
-	}
-	if filter.Since != nil {
-		req.Since = timestamppb.New(*filter.Since)
-	}
-	if len(filter.Patterns) > 0 {
-		req.Pattern = patternTypeFromString(filter.Patterns[0])
-	}
+		req := &chronosv1.ListSignalsRequest{
+			ScopeId: scopeID.String(),
+			Limit:   int32(filter.Limit),
+		}
+		if filter.Since != nil {
+			req.Since = timestamppb.New(*filter.Since)
+		}
+		if len(filter.Patterns) > 0 {
+			req.Pattern = patternTypeFromString(filter.Patterns[0])
+		}
 
-	resp, err := a.client.ListSignals(ctx, req, a.callOpts()...)
-	if err != nil {
-		return nil, fmt.Errorf("chronos grpc: list signals: %w", err)
-	}
+		resp, err := a.client.ListSignals(ctx, req, a.callOpts()...)
+		if err != nil {
+			return fmt.Errorf("chronos grpc: list signals: %w", err)
+		}
 
-	signals := make([]domain.ChronosSignal, 0, len(resp.Signals))
-	for _, s := range resp.Signals {
-		signals = append(signals, domain.ChronosSignal{
-			ID:         parseUUID(s.Id),
-			Pattern:    patternTypeToString(s.Pattern),
-			ScopeID:    parseUUID(s.ScopeId),
-			Series:     parseUUID(s.Series),
-			Confidence: s.Confidence,
-			DetectedAt: s.DetectedAt.AsTime(),
-		})
-	}
-	return signals, nil
+		signals = make([]domain.ChronosSignal, 0, len(resp.Signals))
+		for _, s := range resp.Signals {
+			signals = append(signals, domain.ChronosSignal{
+				ID:         parseUUID(s.Id),
+				Pattern:    patternTypeToString(s.Pattern),
+				ScopeID:    parseUUID(s.ScopeId),
+				Series:     parseUUID(s.Series),
+				Confidence: s.Confidence,
+				DetectedAt: s.DetectedAt.AsTime(),
+			})
+		}
+		return nil
+	})
+	return signals, err
 }
 
 // patternTypeFromString maps a client PatternType constant to the proto enum.

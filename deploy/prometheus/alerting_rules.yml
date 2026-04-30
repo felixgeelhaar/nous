@@ -1,0 +1,120 @@
+# Prometheus Alerting Rules for Nous
+# These rules define alerts for SLO violations and operational issues.
+
+groups:
+  - name: nous_slos
+    interval: 30s
+    rules:
+      # Uptime SLO: 99.9% over 30 days
+      - alert: NousUptimeLow
+        expr: avg(up{job="nous"}) * 100 < 99.9
+        for: 5m
+        labels:
+          severity: warning
+        component: nous
+        annotations:
+          summary: "Nous uptime is below SLO target"
+          description: "Nous uptime is {{ $value }}%, below target of 99.9%"
+
+      # P99 Latency SLO: < 100ms
+      - alert: NousLatencyHigh
+        expr: histogram_quantile(0.99, rate(nous_http_request_duration_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: nous
+        annotations:
+          summary: "Nous p99 latency is above SLO target"
+          description: "Nous p99 latency is {{ $value }}s, above target of 100ms"
+
+      # Error rate: < 0.1%
+      - alert: NousErrorRateHigh
+        expr: |
+          sum(rate(nous_http_request_duration_seconds_count{status="error"}[5m]))
+          / sum(rate(nous_http_request_duration_seconds_count[5m])) * 100 > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: nous
+        annotations:
+          summary: "Nous error rate is above SLO target"
+          description: "Nous error rate is {{ $value }}%, above target of 0.1%"
+
+  - name: nous_circuit_breakers
+    interval: 10s
+    rules:
+      # Circuit breaker open for Mnemos adapter
+      - alert: NousMnemosCircuitOpen
+        expr: nous_circuit_state{adapter="mnemos"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: nous
+          adapter: mnemos
+        annotations:
+          summary: "Nous Mnemos adapter circuit breaker is OPEN"
+          description: "Mnemos adapter circuit breaker has been open for more than 1 minute"
+
+      # Circuit breaker open for Chronos adapter
+      - alert: NousChronosCircuitOpen
+        expr: nous_circuit_state{adapter="chronos"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: nous
+          adapter: chronos
+        annotations:
+          summary: "Nous Chronos adapter circuit breaker is OPEN"
+          description: "Chronos adapter circuit breaker has been open for more than 1 minute"
+
+  - name: nous_business_metrics
+    interval: 1m
+    rules:
+      # High-risk commitments count
+      - alert: NousHighRiskCommitments
+        expr: sum(nous_risk_score_bucket{le="1.0"}) by (outcome) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: nous
+        annotations:
+          summary: "High-risk commitments detected"
+          description: "{{ $value }} commitments have risk score > 0.9"
+
+      # Intervention rate
+      - alert: NousInterventionRateHigh
+        expr: rate(nous_interventions_created_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: nous
+        annotations:
+          summary: "Nous intervention rate is high"
+          description: "Creating more than 0.1 interventions/sec"
+
+  - name: nous_adapter_health
+    interval: 30s
+    rules:
+      # Adapter health - Mnemos
+      - alert: NousMnemosAdapterDown
+        expr: nous_adapter_health{adapter="mnemos"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: nous
+          adapter: mnemos
+        annotations:
+          summary: "Nous Mnemos adapter is DOWN"
+          description: "Mnemos adapter has been unhealthy for more than 2 minutes"
+
+      # Adapter health - Chronos
+      - alert: NousChronosAdapterDown
+        expr: nous_adapter_health{adapter="chronos"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: nous
+          adapter: chronos
+        annotations:
+          summary: "Nous Chronos adapter is DOWN"
+          description: "Chronos adapter has been unhealthy for more than 2 minutes"

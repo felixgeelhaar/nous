@@ -1,0 +1,580 @@
+{
+  "meta": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-04-30T17:30:46Z",
+    "tool_name": "nox",
+    "tool_version": "0.7.0"
+  },
+  "findings": [
+    {
+      "ID": "",
+      "RuleID": "CONT-001",
+      "Severity": "medium",
+      "Confidence": "high",
+      "Location": {
+        "FilePath": "Dockerfile",
+        "StartLine": 3,
+        "EndLine": 0,
+        "StartColumn": 0,
+        "EndColumn": 0
+      },
+      "Message": "Container base image golang:1.26-alpine not pinned to specific digest",
+      "Fingerprint": "c1e52d5373378ca73cd915af8dc38c8c8db8a40567b3420b504c1321b29240b5",
+      "Metadata": {
+        "ecosystem": "docker",
+        "image": "golang",
+        "version": "1.26-alpine"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "",
+      "RuleID": "CONT-001",
+      "Severity": "medium",
+      "Confidence": "high",
+      "Location": {
+        "FilePath": "Dockerfile",
+        "StartLine": 16,
+        "EndLine": 0,
+        "StartColumn": 0,
+        "EndColumn": 0
+      },
+      "Message": "Container base image gcr.io/distroless/static-debian12:nonroot not pinned to specific digest",
+      "Fingerprint": "300aaba66650d3efc3e779b4c64ebe761de8666a97df91d6b598f58f526c1898",
+      "Metadata": {
+        "ecosystem": "docker",
+        "image": "gcr.io/distroless/static-debian12",
+        "version": "nonroot"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "DATA-001:internal/transport/grpc/server_test.go:331",
+      "RuleID": "DATA-001",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "internal/transport/grpc/server_test.go",
+        "StartLine": 331,
+        "EndLine": 331,
+        "StartColumn": 76,
+        "EndColumn": 93
+      },
+      "Message": "Email address in code or config",
+      "Fingerprint": "f69cebc7cd16010b51d72cd9368c3cec32c2ac1311fe5029bc5ff7aed6cc5228",
+      "Metadata": {
+        "cwe": "CWE-359"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "DATA-001:internal/transport/grpc/server_test.go:391",
+      "RuleID": "DATA-001",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "internal/transport/grpc/server_test.go",
+        "StartLine": 391,
+        "EndLine": 391,
+        "StartColumn": 40,
+        "EndColumn": 58
+      },
+      "Message": "Email address in code or config",
+      "Fingerprint": "0405be8729ed340f9d3c4cd36b745216fdc4b5d0ae3dc475cc4d37ce50230d49",
+      "Metadata": {
+        "cwe": "CWE-359"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "DATA-001:internal/transport/grpc/server_test.go:401",
+      "RuleID": "DATA-001",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "internal/transport/grpc/server_test.go",
+        "StartLine": 401,
+        "EndLine": 401,
+        "StartColumn": 19,
+        "EndColumn": 37
+      },
+      "Message": "Email address in code or config",
+      "Fingerprint": "ef5c68bc9d04998aeaa91e8a8aa49108943a9b236cc91dc90a90bc554be83ffe",
+      "Metadata": {
+        "cwe": "CWE-359"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "DATA-005:internal/transport/http/ratelimit_test.go:66",
+      "RuleID": "DATA-005",
+      "Severity": "medium",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "internal/transport/http/ratelimit_test.go",
+        "StartLine": 66,
+        "EndLine": 66,
+        "StartColumn": 13,
+        "EndColumn": 28
+      },
+      "Message": "Hardcoded public IP address in configuration",
+      "Fingerprint": "54b252a9c6f717468f1b3809ae78edac3136d04da4766a4f15d43f5ef149708b",
+      "Metadata": {
+        "cwe": "CWE-200"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "DATA-005:internal/transport/http/ratelimit_test.go:72",
+      "RuleID": "DATA-005",
+      "Severity": "medium",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "internal/transport/http/ratelimit_test.go",
+        "StartLine": 72,
+        "EndLine": 72,
+        "StartColumn": 13,
+        "EndColumn": 28
+      },
+      "Message": "Hardcoded public IP address in configuration",
+      "Fingerprint": "db59d61d82811095d7ba97a39d94e789ffe7a98b7781ed8004f3ddb523a6ecb8",
+      "Metadata": {
+        "cwe": "CWE-200"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "IAC-254:.github/workflows/ci.yml:22",
+      "RuleID": "IAC-254",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": ".github/workflows/ci.yml",
+        "StartLine": 22,
+        "EndLine": 22,
+        "StartColumn": 20,
+        "EndColumn": 31
+      },
+      "Message": "Serverless environment variable with hardcoded secret",
+      "Fingerprint": "b3547ae4710552f0ca17614745bcd8347786309ebfc738f47767bee061656652",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "IAC-351:.github/workflows/ci.yml:22",
+      "RuleID": "IAC-351",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": ".github/workflows/ci.yml",
+        "StartLine": 22,
+        "EndLine": 22,
+        "StartColumn": 20,
+        "EndColumn": 31
+      },
+      "Message": "CI variable with hardcoded secret",
+      "Fingerprint": "6061abdee60f515d70a474b6bfa42f1eafed4f222018eeaf4a6792a287bef125",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-073:.github/workflows/ci.yml:57",
+      "RuleID": "SEC-073",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": ".github/workflows/ci.yml",
+        "StartLine": 57,
+        "EndLine": 57,
+        "StartColumn": 35,
+        "EndColumn": 108
+      },
+      "Message": "Database Connection String with credentials detected",
+      "Fingerprint": "bb268959fba1859db8838d65369930bec2835ce48f8aee854f9fa95ccd30e58b",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-073:.github/workflows/ci.yml:62",
+      "RuleID": "SEC-073",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": ".github/workflows/ci.yml",
+        "StartLine": 62,
+        "EndLine": 62,
+        "StartColumn": 35,
+        "EndColumn": 108
+      },
+      "Message": "Database Connection String with credentials detected",
+      "Fingerprint": "83a38e32124afec20ca7c30d8b8e014b5b824f1f523aa4da5ff1a4a3630a9798",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-073:CONTRIBUTING.md:27",
+      "RuleID": "SEC-073",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "CONTRIBUTING.md",
+        "StartLine": 27,
+        "EndLine": 27,
+        "StartColumn": 27,
+        "EndColumn": 83
+      },
+      "Message": "Database Connection String with credentials detected",
+      "Fingerprint": "6aab964f82230bf3b7f19bba785105d6ef315cdd9981ac9a49a227a280d8e611",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-073:README.md:31",
+      "RuleID": "SEC-073",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "README.md",
+        "StartLine": 31,
+        "EndLine": 31,
+        "StartColumn": 35,
+        "EndColumn": 86
+      },
+      "Message": "Database Connection String with credentials detected",
+      "Fingerprint": "d5e04bb4bf1d5c3a4a5c8f416aaeed263aac09ca31a90a37ae79ff9e8a15c6a4",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-073:README.md:128",
+      "RuleID": "SEC-073",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "README.md",
+        "StartLine": 128,
+        "EndLine": 128,
+        "StartColumn": 24,
+        "EndColumn": 80
+      },
+      "Message": "Database Connection String with credentials detected",
+      "Fingerprint": "c3e4e23ab42e1b9f366fc0208efcb71310d38af0f8464babc362bd659f8768a5",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-073:internal/store/postgres/db.go:23",
+      "RuleID": "SEC-073",
+      "Severity": "critical",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "internal/store/postgres/db.go",
+        "StartLine": 23,
+        "EndLine": 23,
+        "StartColumn": 39,
+        "EndColumn": 67
+      },
+      "Message": "Database Connection String with credentials detected",
+      "Fingerprint": "2b3acfe4a2dc76eccadb2f0bdedbaf402b1ec658c102b8bba95893ccef62e450",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-161:internal/store/sqlite/db.go:29",
+      "RuleID": "SEC-161",
+      "Severity": "medium",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "internal/store/sqlite/db.go",
+        "StartLine": 29,
+        "EndLine": 29,
+        "StartColumn": 21,
+        "EndColumn": 97
+      },
+      "Message": "High-entropy string in assignment (possible secret)",
+      "Fingerprint": "08b6e96ca94158dcf98d41c58ff53b33ec848735e98452c6622478c57676ed67",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "5.0"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-163:.roady/plan.json:207",
+      "RuleID": "SEC-163",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": ".roady/plan.json",
+        "StartLine": 207,
+        "EndLine": 207,
+        "StartColumn": 23,
+        "EndColumn": 225
+      },
+      "Message": "High-entropy hex string detected (possible secret key)",
+      "Fingerprint": "cdbac439e6a1b3aa99628b86c836e4946b27ed21c1cab495f549e667f5ef3eda",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "4.5",
+        "require_context": "true"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-163:.roady/plan.json:251",
+      "RuleID": "SEC-163",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": ".roady/plan.json",
+        "StartLine": 251,
+        "EndLine": 251,
+        "StartColumn": 23,
+        "EndColumn": 242
+      },
+      "Message": "High-entropy hex string detected (possible secret key)",
+      "Fingerprint": "fbe0642e530faed0236d8dee72ac0d5e89c46080431f814f51867789bd1eaffd",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "4.5",
+        "require_context": "true"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-163:api/nous/v1/nous.pb.go:1252",
+      "RuleID": "SEC-163",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "api/nous/v1/nous.pb.go",
+        "StartLine": 1252,
+        "EndLine": 1252,
+        "StartColumn": 51,
+        "EndColumn": 110
+      },
+      "Message": "High-entropy hex string detected (possible secret key)",
+      "Fingerprint": "5b04d3bd3aa1cd54b0e3fe65dbb670cc418b56e2bd3300a56fb22c2c357c5b39",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "4.5",
+        "require_context": "true"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-163:internal/coordination/axi_test.go:67",
+      "RuleID": "SEC-163",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "internal/coordination/axi_test.go",
+        "StartLine": 67,
+        "EndLine": 67,
+        "StartColumn": 13,
+        "EndColumn": 46
+      },
+      "Message": "High-entropy hex string detected (possible secret key)",
+      "Fingerprint": "39952a1154483d6f0dc2b154f601b45fc5bf751fa05c6b03c36dcf2d2afed8ca",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "4.5",
+        "require_context": "true"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-163:internal/coordination/direct_test.go:88",
+      "RuleID": "SEC-163",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "internal/coordination/direct_test.go",
+        "StartLine": 88,
+        "EndLine": 88,
+        "StartColumn": 13,
+        "EndColumn": 45
+      },
+      "Message": "High-entropy hex string detected (possible secret key)",
+      "Fingerprint": "6334324ee03594a8537ff58e53be5729249895868d64791e394401273e34c2fd",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "4.5",
+        "require_context": "true"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-163:internal/coordination/direct_test.go:109",
+      "RuleID": "SEC-163",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "internal/coordination/direct_test.go",
+        "StartLine": 109,
+        "EndLine": 109,
+        "StartColumn": 13,
+        "EndColumn": 71
+      },
+      "Message": "High-entropy hex string detected (possible secret key)",
+      "Fingerprint": "bcf9eaf23b3a8c01118e92ea8f7daeac61c8931c2808a4a221927a6897330c35",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "4.5",
+        "require_context": "true"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-163:internal/store/sqlite/db.go:29",
+      "RuleID": "SEC-163",
+      "Severity": "medium",
+      "Confidence": "low",
+      "Location": {
+        "FilePath": "internal/store/sqlite/db.go",
+        "StartLine": 29,
+        "EndLine": 29,
+        "StartColumn": 21,
+        "EndColumn": 97
+      },
+      "Message": "High-entropy hex string detected (possible secret key)",
+      "Fingerprint": "5636b27f5d64fbb544caa48c16fe5ff8b9df5fc55030108a31fa562c8a697de5",
+      "Metadata": {
+        "cwe": "CWE-798",
+        "entropy_threshold": "4.5",
+        "require_context": "true"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-430:.github/workflows/ci.yml:57",
+      "RuleID": "SEC-430",
+      "Severity": "high",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": ".github/workflows/ci.yml",
+        "StartLine": 57,
+        "EndLine": 57,
+        "StartColumn": 35,
+        "EndColumn": 46
+      },
+      "Message": "Detected PostgreSQL",
+      "Fingerprint": "c2a75a19875b65b58fb25a61eb4e2d84f065eeec4e1f034668c18d5931660a36",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-430:.github/workflows/ci.yml:62",
+      "RuleID": "SEC-430",
+      "Severity": "high",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": ".github/workflows/ci.yml",
+        "StartLine": 62,
+        "EndLine": 62,
+        "StartColumn": 35,
+        "EndColumn": 46
+      },
+      "Message": "Detected PostgreSQL",
+      "Fingerprint": "0e3f6b4be553725b87985d6828b954ae26902a4c40b772b5a289a6c4e3df33e0",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-430:CONTRIBUTING.md:27",
+      "RuleID": "SEC-430",
+      "Severity": "high",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "CONTRIBUTING.md",
+        "StartLine": 27,
+        "EndLine": 27,
+        "StartColumn": 27,
+        "EndColumn": 38
+      },
+      "Message": "Detected PostgreSQL",
+      "Fingerprint": "c4230c2a6e9a34120296f8b4938536a7ecac5fe3be118e87b356247d198faf9f",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-430:README.md:31",
+      "RuleID": "SEC-430",
+      "Severity": "high",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "README.md",
+        "StartLine": 31,
+        "EndLine": 31,
+        "StartColumn": 35,
+        "EndColumn": 46
+      },
+      "Message": "Detected PostgreSQL",
+      "Fingerprint": "dc19c0323e79185e828e1032b0fe33ae77ef7d4ed560686d29dff5e40d446722",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-430:README.md:128",
+      "RuleID": "SEC-430",
+      "Severity": "high",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "README.md",
+        "StartLine": 128,
+        "EndLine": 128,
+        "StartColumn": 24,
+        "EndColumn": 35
+      },
+      "Message": "Detected PostgreSQL",
+      "Fingerprint": "ef92ed91f85b1f22234ac238c2bfc28123646655c67c593cd588fc1acf7a55af",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    },
+    {
+      "ID": "SEC-430:internal/store/postgres/db.go:23",
+      "RuleID": "SEC-430",
+      "Severity": "high",
+      "Confidence": "medium",
+      "Location": {
+        "FilePath": "internal/store/postgres/db.go",
+        "StartLine": 23,
+        "EndLine": 23,
+        "StartColumn": 39,
+        "EndColumn": 50
+      },
+      "Message": "Detected PostgreSQL",
+      "Fingerprint": "54e03c1778214ad36c99b40abd6c446436f772d80c6e845daca409857e051a7b",
+      "Metadata": {
+        "cwe": "CWE-798"
+      },
+      "Status": "baselined"
+    }
+  ]
+}
