@@ -1,0 +1,419 @@
+openapi: 3.0.3
+info:
+  title: Nous API
+  description: |
+    Nous is an AI coordination engine that extracts commitments from natural
+    language, evaluates their risk of being missed, and intervenes when
+    necessary.
+  version: 1.0.0
+  contact:
+    name: Nous API Support
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: http://localhost:50051
+    description: gRPC server (primary transport)
+
+paths:
+  /v1/extract:
+    post:
+      summary: Extract commitments from text
+      description: |
+        Parses natural language text into structured commitments with
+        confidence scores. Returns the number of commitments considered,
+        saved, and dropped.
+      operationId: extractCommitments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtractRequest'
+      responses:
+        '200':
+          description: Extraction completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtractResponse'
+        '400':
+          description: Invalid request (missing owner_id or text)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/evaluate:
+    post:
+      summary: Evaluate active commitments
+      description: |
+        Runs the risk evaluation loop on all active (pending and in_progress)
+        commitments. Updates risk scores and creates interventions for
+        high-risk items.
+      operationId: evaluateCommitments
+      responses:
+        '200':
+          description: Evaluation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluateResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/commitments:
+    get:
+      summary: List commitments
+      description: |
+        Returns a list of commitments, optionally filtered by owner_id.
+      operationId: listCommitments
+      parameters:
+        - name: owner_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by owner ID
+      responses:
+        '200':
+          description: List of commitments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Commitment'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/commitments/{id}:
+    get:
+      summary: Get a commitment by ID
+      operationId: getCommitment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Commitment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commitment'
+        '400':
+          description: Invalid ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Commitment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/interventions:
+    get:
+      summary: List interventions
+      description: |
+        Returns a list of interventions, optionally filtered by commitment_id.
+      operationId: listInterventions
+      parameters:
+        - name: commitment_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter by commitment ID
+      responses:
+        '200':
+          description: List of interventions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Intervention'
+        '400':
+          description: Invalid commitment_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/interventions/{id}/resolve:
+    post:
+      summary: Resolve an intervention
+      description: |
+        Transitions an intervention to a terminal state (accepted, rejected,
+        expired, or executed).
+      operationId: resolveIntervention
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveRequest'
+      responses:
+        '200':
+          description: Intervention resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Intervention'
+        '400':
+          description: Invalid ID or status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Intervention not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/health:
+    get:
+      summary: Health check
+      description: |
+        Returns the service health status. Includes a readiness check
+        against the database if configured.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  error:
+                    type: string
+
+  /metrics:
+    get:
+      summary: Metrics snapshot
+      description: |
+        Returns a snapshot of Prometheus-style metrics including
+        commitments extracted, evaluations run, interventions created,
+        and risk distribution.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counters:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  risk_distribution:
+                    type: object
+                    additionalProperties:
+                      type: integer
+
+components:
+  schemas:
+    ExtractRequest:
+      type: object
+      required:
+        - owner_id
+        - text
+      properties:
+        owner_id:
+          type: string
+          description: The entity making commitments
+        text:
+          type: string
+          description: Natural language text to parse
+        hints:
+          type: array
+          items:
+            type: string
+          description: Optional context hints for the extractor
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+
+    ExtractResponse:
+      type: object
+      properties:
+        considered:
+          type: integer
+          description: Number of candidate commitments found
+        saved_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: IDs of commitments that were persisted
+        dropped:
+          type: integer
+          description: Number of commitments below confidence threshold
+        decision_id:
+          type: string
+          format: uuid
+          description: Audit decision ID for this extraction
+
+    EvaluateResponse:
+      type: object
+      properties:
+        evaluated:
+          type: integer
+          description: Number of commitments evaluated
+        updated:
+          type: integer
+          description: Number of commitments with updated risk scores
+        intervention_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        decision_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    Commitment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed, missed, cancelled]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        risk_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Intervention:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        commitment_id:
+          type: string
+          format: uuid
+          nullable: true
+        type:
+          type: string
+          enum: [nudge, suggestion, escalation, automation]
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, rejected, expired, executed]
+        triggered_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ResolveRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pending, accepted, rejected, expired, executed]
+          description: Target status for the intervention
+
+    SourceRef:
+      type: object
+      properties:
+        kind:
+          type: string
+          description: Type of source (e.g., email, chat, document)
+        locator:
+          type: string
+          description: URI or identifier for the source
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message

@@ -1,0 +1,264 @@
+{
+  "id": "plan-nous-1777464998",
+  "spec_id": "nous",
+  "tasks": [
+    {
+      "id": "domain-model-completion",
+      "title": "Complete Domain Model Foundation",
+      "description": "Audit existing domain types (commitment, decision, intervention, goal, task, types, errors) for gaps. Ensure all state machines are complete, validation is thorough, and no zero-value patterns leak. Add any missing types (e.g. Assignment full validation). Add table-driven unit tests for all types.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [],
+      "feature_id": "core-foundation"
+    },
+    {
+      "id": "ports-interfaces-completion",
+      "title": "Complete Ports \u0026 Interfaces",
+      "description": "Audit ports/interfaces.go for completeness. Add any missing repository methods or filter fields needed by pipeline workflows. Ensure all outbound client interfaces (Mnemos, Chronos, Praxis) have transport-safe DTOs. Document interface contracts in code comments.",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [
+        "domain-model-completion"
+      ],
+      "feature_id": "core-foundation"
+    },
+    {
+      "id": "memory-backend-completion",
+      "title": "Complete Memory Backend",
+      "description": "Audit memory store implementation. Ensure all repositories implement their full interface. Add thread-safety if missing. Add store-level integration test that exercises all CRUD and filter combinations.",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [
+        "ports-interfaces-completion"
+      ],
+      "feature_id": "persistence"
+    },
+    {
+      "id": "sqlite-backend-completion",
+      "title": "Complete SQLite Backend",
+      "description": "Audit SQLite store: schema creation, migrations, encoding/decoding, all repository methods. Ensure JSON fields are handled correctly. Fix any missing repository implementations. Add SQLite-specific integration tests.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "memory-backend-completion"
+      ],
+      "feature_id": "persistence"
+    },
+    {
+      "id": "postgres-backend-completion",
+      "title": "Complete PostgreSQL Backend",
+      "description": "Audit PostgreSQL store: schema, migrations, encoding, all repository methods. Ensure parity with SQLite. Add PostgreSQL-specific integration tests. Verify connection pooling and cleanup.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "sqlite-backend-completion"
+      ],
+      "feature_id": "persistence"
+    },
+    {
+      "id": "store-parity-tests",
+      "title": "Store Parity \u0026 Integration Tests",
+      "description": "Create a shared integration test suite that runs against all three backends (memory, sqlite, postgres). Ensure identical behavior for filters, pagination limits, ordering, and JSON field round-tripping. Fix any parity gaps discovered.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "postgres-backend-completion"
+      ],
+      "feature_id": "persistence"
+    },
+    {
+      "id": "risk-engine-completion",
+      "title": "Complete Risk Engine",
+      "description": "Audit risk engine for correctness. Ensure all scoring factors are implemented and clamped. Add memory/recency factor hooks (even if MVP ignores them). Add comprehensive unit tests for edge cases (nil DueAt, multiple signals, score clamping).",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [
+        "domain-model-completion"
+      ],
+      "feature_id": "risk-evaluation"
+    },
+    {
+      "id": "intervention-engine-completion",
+      "title": "Complete Intervention Engine",
+      "description": "Audit intervention engine policy. Ensure thresholds and automation confidence logic are correct. Add tests for all intervention types. Ensure human-readable messages are well-formed.",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [
+        "risk-engine-completion"
+      ],
+      "feature_id": "risk-evaluation"
+    },
+    {
+      "id": "extraction-pipeline-completion",
+      "title": "Complete Extraction Pipeline",
+      "description": "Audit Extractor workflow. Ensure error handling, audit Decision creation, and confidence thresholding are robust. Add tests for partial failures (some saves fail). Ensure clock injection works correctly.",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [
+        "ports-interfaces-completion",
+        "intervention-engine-completion"
+      ],
+      "feature_id": "pipeline"
+    },
+    {
+      "id": "evaluation-pipeline-completion",
+      "title": "Complete Evaluation Pipeline",
+      "description": "Audit Evaluator workflow. Ensure signal lookback, memory fetching, risk update, decision recording, and intervention emission all work. Add tests for soft-fail behavior on Mnemos/Chronos errors. Ensure batch limiting works.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "extraction-pipeline-completion",
+        "store-parity-tests"
+      ],
+      "feature_id": "pipeline"
+    },
+    {
+      "id": "direct-kernel-completion",
+      "title": "Complete Direct Kernel",
+      "description": "Implement DirectKernel fully: convert Intervention SuggestedAction into Praxis ActionRequest, invoke Praxis.Execute, capture result, synthesize EvidenceRecord. Add unit tests with fake PraxisClient.",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [
+        "ports-interfaces-completion"
+      ],
+      "feature_id": "coordination"
+    },
+    {
+      "id": "axi-kernel-completion",
+      "title": "Complete Axi Kernel",
+      "description": "Implement AxiKernel using axi-go: wrap Praxis calls in effect-gated approval, budgets, and tamper-evident evidence chain. Map axi-go evidence to kernel EvidenceRecord. Add tests with fake axi-go client.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "direct-kernel-completion"
+      ],
+      "feature_id": "coordination"
+    },
+    {
+      "id": "llm-scripted-extractor",
+      "title": "Complete Scripted LLM Extractor",
+      "description": "Ensure the scripted CommitmentExtractor implementation is deterministic and covers all test scenarios. Add test cases for edge inputs (empty text, no commitments, malformed hints).",
+      "priority": "medium",
+      "estimate": "1h",
+      "depends_on": [
+        "domain-model-completion"
+      ],
+      "feature_id": "llm-integration"
+    },
+    {
+      "id": "grpc-service-definitions",
+      "title": "Define gRPC Service Layer",
+      "description": "Create protobuf definitions for Extract, Evaluate, ListCommitments, GetDecision, ListInterventions, ResolveIntervention. Generate Go code. Define request/response DTOs with validation tags.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "evaluation-pipeline-completion"
+      ],
+      "feature_id": "transport"
+    },
+    {
+      "id": "grpc-server-implementation",
+      "title": "Implement gRPC Server",
+      "description": "Implement the gRPC service handlers. Wire dependencies (pipelines, repositories) into the server. Add interceptors for logging and auth. Handle error mapping to gRPC status codes.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "grpc-service-definitions"
+      ],
+      "feature_id": "transport"
+    },
+    {
+      "id": "http-gateway",
+      "title": "Implement HTTP Gateway",
+      "description": "Add gRPC-Gateway or equivalent to expose REST endpoints alongside gRPC. Ensure OpenAPI documentation is generated. Map HTTP methods and paths correctly.",
+      "priority": "medium",
+      "estimate": "2h",
+      "depends_on": [
+        "grpc-server-implementation"
+      ],
+      "feature_id": "transport"
+    },
+    {
+      "id": "worker-scheduler",
+      "title": "Implement Worker / Scheduler",
+      "description": "Build a background worker that runs the evaluation loop on a configurable tick. Implement graceful shutdown (drain in-flight evaluations, close stores). Add metrics emission for each tick. Add health check endpoint.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "evaluation-pipeline-completion",
+        "grpc-server-implementation"
+      ],
+      "feature_id": "operations"
+    },
+    {
+      "id": "observability-setup",
+      "title": "Set Up Observability",
+      "description": "Add structured logging (slog) with correlation IDs. Add OpenTelemetry tracing spans for Extract and Evaluate pipelines. Add metrics (Prometheus-style) for commitments extracted, evaluations run, interventions created, risk distribution. Export to stdout/OTLP.",
+      "priority": "medium",
+      "estimate": "3h",
+      "depends_on": [
+        "worker-scheduler"
+      ],
+      "feature_id": "operations"
+    },
+    {
+      "id": "configuration-management",
+      "title": "Configuration \u0026 Environment",
+      "description": "Build configuration loader from environment variables. Support DB type, connection strings, risk thresholds, API keys, tick intervals. Validate config at startup. Provide sensible defaults for dev mode.",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [],
+      "feature_id": "operations"
+    },
+    {
+      "id": "docker-deployment",
+      "title": "Docker \u0026 Deployment Setup",
+      "description": "Create Dockerfile with multi-stage build. Create docker-compose.yml with SQLite/PostgreSQL variants. Add health checks. Ensure non-root user. Document startup procedure.",
+      "priority": "medium",
+      "estimate": "2h",
+      "depends_on": [
+        "configuration-management"
+      ],
+      "feature_id": "operations"
+    },
+    {
+      "id": "cmd-main-entrypoint",
+      "title": "Build cmd/main Entrypoint",
+      "description": "Create the main.go entrypoint that parses config, opens the store, wires all dependencies (pipelines, kernels, worker, gRPC server), and starts the system. Implement graceful shutdown sequence.",
+      "priority": "high",
+      "estimate": "2h",
+      "depends_on": [
+        "worker-scheduler",
+        "configuration-management",
+        "docker-deployment"
+      ],
+      "feature_id": "operations"
+    },
+    {
+      "id": "e2e-smoke-tests",
+      "title": "End-to-End Smoke Tests",
+      "description": "Write a black-box test that starts the full server (memory backend), sends an Extract request, verifies commitment creation, triggers Evaluate, verifies risk update and intervention creation. Clean up between tests.",
+      "priority": "high",
+      "estimate": "3h",
+      "depends_on": [
+        "cmd-main-entrypoint"
+      ],
+      "feature_id": "quality"
+    },
+    {
+      "id": "production-readiness-review",
+      "title": "Production Readiness Review",
+      "description": "Run through the production readiness checklist: 12-Factor compliance, graceful shutdown, health checks, resource limits, error handling, secrets management, logging, tracing, metrics. Fix any gaps. Update documentation.",
+      "priority": "medium",
+      "estimate": "3h",
+      "depends_on": [
+        "e2e-smoke-tests",
+        "observability-setup"
+      ],
+      "feature_id": "quality"
+    }
+  ],
+  "approval_status": "approved",
+  "created_at": "2026-04-29T14:16:38.789187+02:00",
+  "updated_at": "2026-04-29T14:16:38.789187+02:00"
+}

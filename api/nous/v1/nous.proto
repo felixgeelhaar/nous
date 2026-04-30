@@ -1,0 +1,188 @@
+syntax = "proto3";
+
+package nous.v1;
+
+option go_package = "github.com/felixgeelhaar/nous/api/nous/v1;nousv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// Nous is the proactive commitment tracking and intervention service.
+service Nous {
+  // Extract scans text for implied commitments and persists them.
+  rpc Extract(ExtractRequest) returns (ExtractResponse);
+
+  // Evaluate runs the risk scoring and intervention loop over active
+  // commitments.
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+
+  // ListCommitments returns commitments matching the filter.
+  rpc ListCommitments(ListCommitmentsRequest) returns (ListCommitmentsResponse);
+
+  // GetCommitment returns a single commitment by ID.
+  rpc GetCommitment(GetCommitmentRequest) returns (Commitment);
+
+  // ListDecisions returns decisions for audit replay.
+  rpc ListDecisions(ListDecisionsRequest) returns (ListDecisionsResponse);
+
+  // GetDecision returns a single decision by ID.
+  rpc GetDecision(GetDecisionRequest) returns (Decision);
+
+  // ListInterventions returns interventions matching the filter.
+  rpc ListInterventions(ListInterventionsRequest) returns (ListInterventionsResponse);
+
+  // GetIntervention returns a single intervention by ID.
+  rpc GetIntervention(GetInterventionRequest) returns (Intervention);
+
+  // ResolveIntervention transitions an intervention to a terminal state.
+  rpc ResolveIntervention(ResolveInterventionRequest) returns (Intervention);
+}
+
+// --- Extract ---
+
+message ExtractRequest {
+  string owner_id = 1;
+  string text = 2;
+  repeated string hints = 3;
+  repeated SourceRef source_refs = 4;
+}
+
+message ExtractResponse {
+  int32 considered = 1;
+  repeated string saved_ids = 2;
+  int32 dropped = 3;
+  string decision_id = 4;
+}
+
+// --- Evaluate ---
+
+message EvaluateRequest {
+  int32 limit = 1;
+  google.protobuf.Duration signal_lookback = 2;
+}
+
+message EvaluateResponse {
+  int32 evaluated = 1;
+  int32 updated = 2;
+  repeated string intervention_ids = 3;
+  repeated string decision_ids = 4;
+}
+
+// --- Commitment ---
+
+message ListCommitmentsRequest {
+  string owner_id = 1;
+  repeated string statuses = 2;
+  google.protobuf.Timestamp due_by = 3;
+  int32 limit = 4;
+}
+
+message ListCommitmentsResponse {
+  repeated Commitment commitments = 1;
+}
+
+message GetCommitmentRequest {
+  string id = 1;
+}
+
+message Commitment {
+  string id = 1;
+  string owner_id = 2;
+  string description = 3;
+  repeated SourceRef source_refs = 4;
+  repeated EntityRef entities = 5;
+  google.protobuf.Timestamp due_at = 6;
+  string status = 7;
+  double confidence = 8;
+  double risk_score = 9;
+  google.protobuf.Timestamp last_evaluated_at = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// --- Decision ---
+
+message ListDecisionsRequest {
+  string subject = 1;
+  int32 limit = 2;
+}
+
+message ListDecisionsResponse {
+  repeated Decision decisions = 1;
+}
+
+message GetDecisionRequest {
+  string id = 1;
+}
+
+message Decision {
+  string id = 1;
+  string subject = 2;
+  repeated SourceRef context_refs = 3;
+  map<string, string> inputs = 4;
+  map<string, string> outcome = 5;
+  string reason = 6;
+  double confidence = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// --- Intervention ---
+
+message ListInterventionsRequest {
+  string commitment_id = 1;
+  string task_id = 2;
+  repeated string statuses = 3;
+  google.protobuf.Timestamp since = 4;
+  int32 limit = 5;
+}
+
+message ListInterventionsResponse {
+  repeated Intervention interventions = 1;
+}
+
+message GetInterventionRequest {
+  string id = 1;
+}
+
+message ResolveInterventionRequest {
+  string id = 1;
+  string status = 2; // accepted, rejected, expired
+}
+
+message Intervention {
+  string id = 1;
+  string commitment_id = 2;
+  string task_id = 3;
+  string type = 4;
+  string message = 5;
+  ActionRequest suggested_action = 6;
+  string status = 7;
+  google.protobuf.Timestamp triggered_at = 8;
+  google.protobuf.Timestamp resolved_at = 9;
+}
+
+// --- Shared types ---
+
+message SourceRef {
+  string kind = 1;
+  string locator = 2;
+}
+
+message EntityRef {
+  string kind = 1;
+  string name = 2;
+  string id = 3;
+}
+
+message ActionRequest {
+  string id = 1;
+  string capability = 2;
+  map<string, string> payload = 3;
+  repeated ActionConstraint constraints = 4;
+  string idempotency_key = 5;
+}
+
+message ActionConstraint {
+  string key = 1;
+  string value = 2;
+}
