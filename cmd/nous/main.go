@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -154,6 +155,27 @@ func run() error {
 		return err
 	}
 
+	// Health checker - checks DB and adapters
+	healthCheck := func(ctx context.Context) error {
+		// Check database
+		if err := conn.Ping(ctx); err != nil {
+			return fmt.Errorf("db: %w", err)
+		}
+		// Check Mnemos adapter
+		if mnemosAdapter != nil {
+			if status := mnemosAdapter.AdapterStatus(); status != "healthy" {
+				return fmt.Errorf("mnemos: %s", status)
+			}
+		}
+		// Check Chronos adapter
+		if chronosAdapter != nil {
+			if status := chronosAdapter.AdapterStatus(); status != "healthy" {
+				return fmt.Errorf("chronos: %s", status)
+			}
+		}
+		return nil
+	}
+
 	// gRPC server
 	grpcSrv := grpc.NewServer(
 		grpc.UnaryInterceptor(observability.GRPCUnaryInterceptor),
@@ -179,7 +201,7 @@ func run() error {
 	var httpSrv *http.Server
 	var httpErr chan error
 	if cfg.HTTPAddr != "" {
-		handler := httpserver.NewServer(extractor, evaluator, conn.Commitments, conn.Decisions, conn.Interventions, metrics, conn.Ping)
+		handler := httpserver.NewServer(extractor, evaluator, conn.Commitments, conn.Decisions, conn.Interventions, metrics, healthCheck)
 		root := handler.Handler()
 		root = observability.HTTPMiddleware(root)
 		root = httpserver.RateLimitMiddleware(root, httpserver.NewRateLimiter(100, 20))
