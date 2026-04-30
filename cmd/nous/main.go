@@ -27,6 +27,25 @@ import (
 	"google.golang.org/grpc"
 )
 
+// monitorAdapterHealth periodically updates adapter health metrics.
+func monitorAdapterHealth(ctx context.Context, metrics *observability.Metrics, mnemosAdptr *mnemos.Adapter, chronosAdptr *chronos.Adapter) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if mnemosAdptr != nil {
+				metrics.SetAdapterHealth("mnemos", mnemosAdptr.AdapterStatus())
+			}
+			if chronosAdptr != nil {
+				metrics.SetAdapterHealth("chronos", chronosAdptr.AdapterStatus())
+			}
+		}
+	}
+}
+
 func main() {
 	logger := slog.New(observability.NewHandler(slog.NewJSONHandler(os.Stdout, nil)))
 	slog.SetDefault(logger)
@@ -74,6 +93,9 @@ func run() error {
 		return err
 	}
 	defer func() { _ = chronosAdapter.Close() }()
+
+	// Start adapter health monitoring
+	go monitorAdapterHealth(ctx, metrics, mnemosAdapter, chronosAdapter)
 
 	// Engines
 	riskCfg := risk.DefaultConfig()
