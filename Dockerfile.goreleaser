@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1.7
+
+# Runtime-only image consumed by goreleaser. The `nous` binary is built
+# by goreleaser (see .goreleaser.yaml builds:) and dropped into the build
+# context next to this file; this Dockerfile just packages it on top of
+# distroless.
+#
+# CGO is disabled in the goreleaser build, so the binary runs on any
+# Linux/amd64 or arm64 base image without a libc dependency.
+#
+# Local Docker builds (no goreleaser) keep using the existing Dockerfile,
+# which performs a self-contained multi-stage build from source.
+
+FROM gcr.io/distroless/static-debian12:nonroot
+
+LABEL org.opencontainers.image.title="nous" \
+      org.opencontainers.image.description="Decision / coordination layer of the cognitive stack" \
+      org.opencontainers.image.source="https://github.com/felixgeelhaar/nous" \
+      org.opencontainers.image.licenses="MIT"
+
+COPY nous /bin/nous
+
+# 50051 = gRPC; 8080 = HTTP. NOUS_HTTP_ADDR controls the HTTP listener
+# and is unset by default — set it to ":8080" to enable HTTP serving in
+# containerised deployments.
+EXPOSE 50051 8080
+
+ENTRYPOINT ["/bin/nous"]

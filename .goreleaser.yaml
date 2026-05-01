@@ -1,0 +1,179 @@
+version: 2
+
+project_name: nous
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: nous
+    main: ./cmd/nous
+    binary: nous
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.buildDate={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      # Windows on arm64 has vanishing demand and doubles the artefact
+      # surface — match the chronos / mnemos policy and skip it.
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: nous
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge branch
+
+release:
+  draft: true
+  prerelease: auto
+  name_template: "v{{ .Version }}"
+  header: |
+    ## nous v{{ .Version }}
+
+    Decision / coordination layer of the cognitive stack
+    (Mnemos · Chronos · **Nous** · Praxis).
+
+nfpms:
+  - id: nous
+    package_name: nous
+    vendor: Felix Geelhaar
+    homepage: "https://github.com/felixgeelhaar/nous"
+    maintainer: "Felix Geelhaar <felix.geelhaar@gmail.com>"
+    description: |-
+      Nous — Decision layer in the cognitive stack. Combines memories
+      from Mnemos with signals from Chronos to produce structured
+      decisions, plans, and action requests for Praxis to execute.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/local/bin
+    section: utils
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/nous/LICENSE
+        file_info:
+          mode: 0644
+      - src: ./README.md
+        dst: /usr/share/doc/nous/README.md
+        file_info:
+          mode: 0644
+
+brews:
+  - name: nous
+    repository:
+      owner: felixgeelhaar
+      name: homebrew-tap
+      branch: main
+      # PAT with `contents: write` on felixgeelhaar/homebrew-tap.
+      # GITHUB_TOKEN can't push to a different repo, so a PAT is
+      # required. Stored as HOMEBREW_TAP_TOKEN repo secret; the
+      # release workflow exposes it as TAP_GITHUB_TOKEN.
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/felixgeelhaar/nous"
+    description: "Decision / coordination layer of the cognitive stack"
+    license: "MIT"
+    skip_upload: auto
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "chore(formula): bump nous to {{ .Tag }}"
+    install: |
+      bin.install "nous"
+    test: |
+      system "#{bin}/nous", "version"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/felixgeelhaar/nous:{{ .Version }}-amd64"
+      - "ghcr.io/felixgeelhaar/nous:latest-amd64"
+    use: buildx
+    goarch: amd64
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source={{ .GitURL }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+    extra_files:
+      - go.mod
+      - go.sum
+  - image_templates:
+      - "ghcr.io/felixgeelhaar/nous:{{ .Version }}-arm64"
+      - "ghcr.io/felixgeelhaar/nous:latest-arm64"
+    use: buildx
+    goarch: arm64
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source={{ .GitURL }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+    extra_files:
+      - go.mod
+      - go.sum
+
+docker_manifests:
+  - name_template: "ghcr.io/felixgeelhaar/nous:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/felixgeelhaar/nous:{{ .Version }}-amd64"
+      - "ghcr.io/felixgeelhaar/nous:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/felixgeelhaar/nous:latest"
+    image_templates:
+      - "ghcr.io/felixgeelhaar/nous:latest-amd64"
+      - "ghcr.io/felixgeelhaar/nous:latest-arm64"
