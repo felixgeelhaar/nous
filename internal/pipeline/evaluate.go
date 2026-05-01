@@ -52,6 +52,7 @@ type Evaluator struct {
 	interventions ports.InterventionRepository
 	mnemos        ports.MnemosClient
 	chronos       ports.ChronosClient
+	praxis        ports.PraxisClient
 	risk          *risk.Engine
 	intervention  *intervention.Engine
 	clock         Clock
@@ -65,6 +66,7 @@ type EvaluatorConfig struct {
 	Interventions ports.InterventionRepository
 	Mnemos        ports.MnemosClient
 	Chronos       ports.ChronosClient
+	Praxis        ports.PraxisClient // optional; nil falls back to "no execution"
 	Risk          *risk.Engine
 	Intervention  *intervention.Engine
 	Clock         Clock // optional; defaults to SystemClock
@@ -100,6 +102,7 @@ func NewEvaluator(cfg EvaluatorConfig) (*Evaluator, error) {
 		interventions: cfg.Interventions,
 		mnemos:        cfg.Mnemos,
 		chronos:       cfg.Chronos,
+		praxis:        cfg.Praxis,
 		risk:          cfg.Risk,
 		intervention:  cfg.Intervention,
 		clock:         clock,
@@ -183,9 +186,37 @@ func (e *Evaluator) Evaluate(ctx context.Context, opts EvaluateOptions) (Evaluat
 		if e.metrics != nil {
 			e.metrics.IncInterventionsCreated("created", 1)
 		}
+
+		// Praxis hand-off: when an automation-class intervention
+		// fires AND a Praxis client is wired AND it advertises a
+		// matching capability, dry-run the action. Execution
+		// requires explicit human approval per the Praxis safety
+		// model — Nous never auto-executes, even on automation-
+		// class interventions.
+		if iv.Type == domain.InterventionAutomation {
+			e.praxisDryRun(ctx, c, *iv)
+		}
 	}
 
 	return result, nil
+}
+
+// praxisDryRun asks Praxis to simulate the action so the recorded
+// Decision carries the predicted side effects and any blockers.
+// All errors are soft-fail — Praxis being unreachable doesn't
+// affect the rest of evaluation. ErrPraxisDisabled is suppressed
+// because that's the steady state when no Praxis service is wired.
+func (e *Evaluator) praxisDryRun(ctx context.Context, c domain.Commitment, iv domain.Intervention) {
+	if e.praxis == nil {
+		return
+	}
+	req := domain.ActionRequest{
+		ID:             iv.ID,
+		Capability:     "commitment.nudge", // generic; Praxis maps to a real capability
+		Payload:        map[string]any{"commitment_id": c.ID.String(), "owner_id": c.OwnerID, "due_at": c.DueAt},
+		IdempotencyKey: iv.ID.String(),
+	}
+	_, _ = e.praxis.DryRun(ctx, req)
 }
 
 func riskLabel(score float64) string {

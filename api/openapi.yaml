@@ -5,7 +5,12 @@ info:
     Nous is an AI coordination engine that extracts commitments from natural
     language, evaluates their risk of being missed, and intervenes when
     necessary.
-  version: 1.0.0
+
+    The same domain shape ships over gRPC. See `api/nous/v1/nous.proto`.
+  version: 0.1.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
   contact:
     name: Nous API Support
 servers:
@@ -13,6 +18,9 @@ servers:
     description: Local development server
   - url: http://localhost:50051
     description: gRPC server (primary transport)
+security:
+  - bearerAuth: []
+  - {}
 
 paths:
   /v1/extract:
@@ -131,6 +139,74 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /v1/decisions:
+    get:
+      summary: List decisions for a subject
+      description: |
+        Returns the audit-replay record of decisions taken for a subject.
+        Decisions are append-only — corrections are written as follow-up
+        decisions, never as mutations of existing rows.
+      operationId: listDecisions
+      parameters:
+        - name: subject
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Subject string (e.g. "commitment.extract", "evaluate.risk")
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Decisions, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Decision'
+        '400':
+          description: Subject query parameter required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/decisions/{id}:
+    get:
+      summary: Get a decision
+      operationId: getDecision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Decision found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Decision'
+        '400':
+          description: Invalid ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Decision not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /v1/interventions:
     get:
       summary: List interventions
@@ -217,8 +293,9 @@ paths:
     get:
       summary: Health check
       description: |
-        Returns the service health status. Includes a readiness check
-        against the database if configured.
+        Returns the service health status. Aggregates DB connectivity plus
+        Mnemos and Chronos adapter health. Bypasses bearer auth.
+      security: []
       operationId: healthCheck
       responses:
         '200':
@@ -250,7 +327,8 @@ paths:
       description: |
         Returns a snapshot of Prometheus-style metrics including
         commitments extracted, evaluations run, interventions created,
-        and risk distribution.
+        and risk distribution. Bypasses bearer auth.
+      security: []
       operationId: getMetrics
       responses:
         '200':
@@ -270,6 +348,15 @@ paths:
                       type: integer
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: |
+        Set `NOUS_AUTH_TOKEN` at process start to require this header on all
+        non-open endpoints. With no token configured, auth is disabled (and
+        the empty `{}` security alternative applies).
   schemas:
     ExtractRequest:
       type: object
@@ -362,6 +449,36 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+
+    Decision:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        context_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        inputs:
+          type: object
+          additionalProperties: true
+          description: Free-form JSON capturing what fed the decision
+        outcome:
+          type: object
+          additionalProperties: true
+          description: Free-form JSON capturing what was decided
+        reason:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        created_at:
           type: string
           format: date-time
 

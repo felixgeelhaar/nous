@@ -32,6 +32,32 @@ type Config struct {
 	// LLM extraction tuning
 	Extract ExtractConfig
 
+	// LLM provider
+	LLM LLMConfig
+
+	// Inbound auth (HTTP + gRPC). Empty disables auth.
+	AuthToken string
+
+	// JWT auth (HTTP + gRPC). Active hex secret signs and validates new
+	// tokens; previous hex secret (if set) only validates, supporting
+	// zero-downtime key rotation. Either may be empty to disable.
+	JWTKID         string
+	JWTSecretHex   string
+	JWTPrevKID     string
+	JWTPrevSecHex  string
+	JWTDefaultTTL  time.Duration
+
+	// JWT key rotation. Period > 0 enables a background rotator that
+	// generates a fresh active key every period and demotes the
+	// outgoing one to previous for `overlap` so live tokens stay
+	// valid. Overlap should be ≥ JWTDefaultTTL.
+	JWTRotatePeriod  time.Duration
+	JWTRotateOverlap time.Duration
+
+	// Validation rules. Comma-separated `name=expr` entries.
+	// Example: NOUS_VALIDATION_RULES="max_text=text_len <= 5000,owner_prefix=owner_id.startsWith(\"u_\")"
+	ValidationRules string
+
 	// External services
 	MnemosAddr       string // gRPC address of Mnemos (optional)
 	MnemosTLSCert    string // path to TLS cert file (optional)
@@ -39,6 +65,20 @@ type Config struct {
 	ChronosAddr      string // gRPC address of Chronos (optional)
 	ChronosTLSCert   string // path to TLS cert file (optional)
 	ChronosBearerToken string // bearer token for Chronos auth (optional)
+	PraxisAddr       string // gRPC address of Praxis (optional)
+	PraxisTLSCert    string // path to TLS cert file (optional)
+	PraxisBearerToken string // bearer token for Praxis auth (optional)
+
+	// Inbound TLS for the Nous server itself (HTTP + gRPC). When set,
+	// the server starts in TLS mode using the provided cert + key.
+	// Empty disables — operators relying on a TLS-terminating proxy
+	// leave these unset.
+	TLSCertFile string
+	TLSKeyFile  string
+	// MTLSClientCAFile, when set, requires mutual TLS: client certs
+	// signed by this CA are required on every connection. Empty
+	// keeps the server in regular TLS mode.
+	MTLSClientCAFile string
 }
 
 // RiskConfig overrides risk engine defaults.
@@ -62,6 +102,15 @@ type ExtractConfig struct {
 	MinConfidence float64
 }
 
+// LLMConfig configures the optional LLM provider used for extraction.
+// Provider empty means "use the deterministic ScriptedExtractor".
+type LLMConfig struct {
+	Provider string // anthropic | openai | "" (none)
+	APIKey   string
+	Model    string // optional override
+	BaseURL  string // optional override (for proxies / openai-compat endpoints)
+}
+
 // Load reads configuration from the environment.
 func Load() (Config, error) {
 	cfg := Config{
@@ -76,6 +125,12 @@ func Load() (Config, error) {
 		ChronosAddr:      os.Getenv("NOUS_CHRONOS_ADDR"),
 		ChronosTLSCert:   os.Getenv("NOUS_CHRONOS_TLS_CERT"),
 		ChronosBearerToken: os.Getenv("NOUS_CHRONOS_BEARER_TOKEN"),
+		PraxisAddr:       os.Getenv("NOUS_PRAXIS_ADDR"),
+		PraxisTLSCert:    os.Getenv("NOUS_PRAXIS_TLS_CERT"),
+		PraxisBearerToken: os.Getenv("NOUS_PRAXIS_BEARER_TOKEN"),
+		TLSCertFile:      os.Getenv("NOUS_TLS_CERT_FILE"),
+		TLSKeyFile:       os.Getenv("NOUS_TLS_KEY_FILE"),
+		MTLSClientCAFile: os.Getenv("NOUS_MTLS_CLIENT_CA_FILE"),
 	}
 
 	// Risk
@@ -92,6 +147,23 @@ func Load() (Config, error) {
 
 	// Extract
 	cfg.Extract.MinConfidence = parseFloat(os.Getenv("NOUS_EXTRACT_MIN_CONFIDENCE"), 0)
+
+	// LLM
+	cfg.LLM.Provider = strings.ToLower(strings.TrimSpace(os.Getenv("NOUS_LLM_PROVIDER")))
+	cfg.LLM.APIKey = os.Getenv("NOUS_LLM_API_KEY")
+	cfg.LLM.Model = os.Getenv("NOUS_LLM_MODEL")
+	cfg.LLM.BaseURL = os.Getenv("NOUS_LLM_BASE_URL")
+
+	// Auth
+	cfg.AuthToken = os.Getenv("NOUS_AUTH_TOKEN")
+	cfg.JWTKID = os.Getenv("NOUS_JWT_KID")
+	cfg.JWTSecretHex = os.Getenv("NOUS_JWT_SECRET")
+	cfg.JWTPrevKID = os.Getenv("NOUS_JWT_PREV_KID")
+	cfg.JWTPrevSecHex = os.Getenv("NOUS_JWT_PREV_SECRET")
+	cfg.JWTDefaultTTL = parseDuration(os.Getenv("NOUS_JWT_TTL"), time.Hour)
+	cfg.JWTRotatePeriod = parseDuration(os.Getenv("NOUS_JWT_ROTATE_PERIOD"), 0)
+	cfg.JWTRotateOverlap = parseDuration(os.Getenv("NOUS_JWT_ROTATE_OVERLAP"), 0)
+	cfg.ValidationRules = os.Getenv("NOUS_VALIDATION_RULES")
 
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -112,6 +184,16 @@ func (c Config) Validate() error {
 	}
 	if c.TickInterval <= 0 {
 		return fmt.Errorf("config: tick_interval must be positive")
+	}
+	switch c.LLM.Provider {
+	case "", "anthropic", "openai", "gemini", "bedrock":
+		// ok
+	default:
+		return fmt.Errorf("config: unsupported llm provider %q", c.LLM.Provider)
+	}
+	// Bedrock auth comes from the AWS credential chain — no API key required.
+	if c.LLM.Provider != "" && c.LLM.Provider != "bedrock" && c.LLM.APIKey == "" {
+		return fmt.Errorf("config: NOUS_LLM_API_KEY required when NOUS_LLM_PROVIDER=%s", c.LLM.Provider)
 	}
 	return nil
 }

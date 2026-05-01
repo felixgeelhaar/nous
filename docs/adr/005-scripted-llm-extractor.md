@@ -1,7 +1,7 @@
 # ADR 005: Scripted LLM Extractor for MVP
 
 ## Status
-Accepted
+Accepted (2026-04). Active: `ScriptedExtractor` remains the deterministic fallback for tests and offline demos. Phase-3 LLM provider transition in progress — see "Future Work" below and `internal/llm/llm_extractor.go`.
 
 ## Context
 Commitment extraction is the core value proposition of Nous — turning natural language into structured commitments. However, LLM integration introduces:
@@ -41,3 +41,6 @@ Post-MVP, implement a `llm.OpenAIExtractor` or `llm.AnthropicExtractor` that cal
 - Structured output (JSON mode / function calling)
 - Few-shot prompting with examples
 - Confidence calibration
+
+## Phase-3 Transition (in progress, May 2026)
+`internal/llm/llm_extractor.go` introduces `LLMExtractor` and `Provider` seam alongside `AnthropicProvider` and `OpenAIProvider` stubs. Both providers currently return `not yet implemented`; HTTP transport and JSON parsing land next. `ScriptedExtractor` continues to satisfy the `CommitmentExtractor` port and is wired by default for tests and demos until the LLM path is GA. ADR-006 will record the cutover decision.

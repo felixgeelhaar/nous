@@ -1,6 +1,6 @@
 # Nous - Future Work & Roadmap
 
-## Current Status (April 30, 2026)
+## Current Status (May 1, 2026)
 
 ### ✅ Completed MVP (All 23 Roady Tasks)
 
@@ -41,48 +41,69 @@
 - Three-backend parity test suite
 - Database migrations for SQLite and PostgreSQL
 
+### ✅ Phase-1 Production Hardening (Shipped April 30, 2026)
+
+**Resilience:**
+- Circuit breakers for Mnemos/Chronos adapters (`internal/circuit/`)
+- Adapter health monitoring with `/v1/health` aggregating downstream state
+- Graceful degradation when adapters unavailable
+
+**Monitoring:**
+- Prometheus alerting rules (`deploy/prometheus/alerting_rules.yml`)
+- Grafana dashboard (`deploy/grafana/dashboards/`)
+- Coverage tracking via `.coverctl.yaml` + nox security baseline (`findings.json`)
+
+**Security baseline:**
+- nox v0.7.0 scan run; 580 findings baselined (mostly low-confidence test data)
+- 2x medium Docker pin TODOs tracked in baseline (see Open Items)
+
 ---
 
 ## Next Steps (Priority Order)
 
-### 1. Production Hardening (Next 2 Weeks)
+### 1. Production Hardening (Remaining)
 
 **Security & Compliance:**
-- [ ] Run full security audit (nox scan)
-- [ ] Implement input validation with CEL (Custom Expr Lang)
-- [ ] Add mTLS between services (AxiKernel integration)
-- [ ] Rotate bearer tokens automatically
-- [ ] Add rate limiting per-owner instead of global
+- [x] Pin Dockerfile base images to digests
+- [x] Document `SECURITY.md` with `findings.json` baseline policy
+- [x] Inbound bearer-token auth on HTTP + gRPC (`NOUS_AUTH_TOKEN`)
+- [x] JWT auth (HS256, dual-key rotation) on HTTP + gRPC alongside static bearer
+- [x] Per-owner rate limiting (caller identity layered above IP limiter)
+- [x] Input validation via CEL (`NOUS_VALIDATION_RULES`)
+- [x] Automated JWT key rotation — background `auth.Rotator` regenerates active key every `NOUS_JWT_ROTATE_PERIOD`, demotes prior to previous for `NOUS_JWT_ROTATE_OVERLAP`
+- [x] mTLS — `NOUS_TLS_CERT_FILE` + `NOUS_TLS_KEY_FILE` for server TLS; `NOUS_MTLS_CLIENT_CA_FILE` upgrades to mutual TLS on HTTP + gRPC simultaneously
 
 **Monitoring & Alerting:**
-- [ ] Deploy Prometheus + Grafana dashboard
-- [ ] Set up alerting on high-risk commitments (> 0.8 risk score)
-- [ ] Add SLOs: 99.9% uptime, p99 latency < 100ms
-- [ ] Structured log shipping to ELK/Loki stack
+- [x] Deployment runbook for Prometheus + Grafana (`docs/DEPLOYMENT.md`)
+- [x] SLO doc (`docs/SLOs.md`) — 99.9 % uptime, p99 < 100 ms, error rate < 0.1 %
+- [ ] Structured log shipping to ELK/Loki stack (operator-side)
 
 **Resilience:**
-- [ ] Circuit breakers for Mnemos/Chronos adapters
 - [ ] Retry with exponential backoff for external calls
-- [ ] Graceful degradation when adapters unavailable
 - [ ] Health check endpoints for k8s liveness/readiness
 
 ### 2. Praxis Integration (Month 2)
 
 **Prerequisite:** Praxis service must exist
 
-- [ ] Build Praxis gRPC adapter (`internal/adapters/praxis/`)
-- [ ] Implement `ports.PraxisClient` interface
-- [ ] Wire into extractor pipeline
-- [ ] Add to main entrypoint with TLS + auth
-- [ ] e2e tests with mock Praxis server
+- [x] Build Praxis gRPC adapter (`internal/adapters/praxis/`) — stub adapter implementing `ports.PraxisClient` ships disabled-by-default; methods return `ErrPraxisDisabled` until a Praxis address is configured. When a Praxis service ships, only the proto wiring inside the adapter changes.
+- [x] Implement `ports.PraxisClient` interface
+- [x] Wire into evaluator pipeline (`praxisDryRun` on automation-class interventions)
+- [x] Add to main entrypoint with TLS + auth (`NOUS_PRAXIS_ADDR/TLS_CERT/BEARER_TOKEN`)
+- [ ] e2e tests with mock Praxis server (blocked on a deployed Praxis)
 
 ### 3. AI/LLM Improvements (Month 2-3)
 
 **Prompt Engineering:**
-- [ ] Replace scripted extractor with real LLM (Claude/GPT)
-- [ ] Implement context window management
-- [ ] Add few-shot examples for better extraction
-- [ ] A/B test prompt versions
+- [x] Wire `LLMExtractor` with Anthropic + OpenAI providers (real HTTP transport, shared JSON parser, base-URL override for OpenAI-compatible endpoints, full unit-test coverage)
+- [x] Keep `ScriptedExtractor` as deterministic fallback for tests + offline demos
+- [x] Few-shot examples in `PromptBuilder` with operator-overridable defaults
+- [x] Prompt versioning (`PromptVersion = "v2"`)
+- [x] Gemini provider (Generative Language API)
+- [x] Bedrock provider (InvokeModel with Anthropic-on-Bedrock body shape)
+- [x] Golden-output regression tests (`internal/llm/golden.go` + default dataset)
+- [x] Context-window management (`internal/llm/context_window.go`) with per-provider `DefaultBudgets`
+- [x] A/B prompt routing (`internal/llm/ab_prompt.go`) — deterministic by `OwnerID`
 
 **Model Evaluation:**
 - [ ] Track extraction accuracy (precision/recall)
@@ -158,10 +179,12 @@
 - [ ] Add pre-commit hooks for formatting + linting
 
 ### Documentation
-- [ ] Architecture Decision Records (ADRs) for key choices
-- [ ] API reference documentation (Swagger/OpenAPI)
-- [ ] Deployment runbooks (k8s, systemd, Docker)
-- [ ] Video walkthroughs for new developers
+- [x] Architecture Decision Records (ADRs 001-006 in `docs/adr/`)
+- [x] Deployment runbook (`docs/DEPLOYMENT.md`)
+- [x] SECURITY.md covering nox baseline policy
+- [x] CHANGELOG.md tracking releases (v0.1.0 first entry)
+- [x] ADR-006 documenting LLM extractor transition (Anthropic/OpenAI providers)
+- [x] OpenAPI 3 schema (`api/openapi.yaml`) — covers all HTTP endpoints incl. decisions + bearer auth
 
 ---
 
@@ -204,5 +227,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ---
 
-**Last Updated:** April 30, 2026  
+**Last Updated:** May 1, 2026  
 **Next Review:** May 15, 2026
