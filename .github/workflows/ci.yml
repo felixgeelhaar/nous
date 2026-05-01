@@ -52,7 +52,7 @@ jobs:
         run: go install github.com/felixgeelhaar/coverctl@latest
 
       - name: Enforce coverage policy
-        run: coverctl check --from-profile coverage.out -o json
+        run: coverctl check --profile ./coverage.out --from-profile -o json
         # `coverctl check` exits 1 on any domain falling below its
         # threshold in .coverctl.yaml.
 
@@ -102,7 +102,7 @@ jobs:
           cache: true
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.1.6
           args: --timeout=5m
