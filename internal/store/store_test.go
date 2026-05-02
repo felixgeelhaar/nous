@@ -2,10 +2,13 @@ package store_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"os"
 	"testing"
 	"time"
+
+	_ "github.com/lib/pq"
 
 	"github.com/felixgeelhaar/nous/internal/domain"
 	"github.com/felixgeelhaar/nous/internal/ports"
@@ -28,10 +31,28 @@ func backends(t *testing.T) []backend {
 	}
 	if dsn := os.Getenv("NOUS_TEST_POSTGRES_DSN"); dsn != "" {
 		out = append(out, backend{"postgres", func() (*store.Conn, error) {
+			// Parity tests share one Postgres database; subtests
+			// inherit each other's rows otherwise. Truncate every
+			// table the parity suite touches before each subtest
+			// runs.
+			if err := truncatePostgres(dsn); err != nil {
+				return nil, err
+			}
 			return store.Open(context.Background(), "postgres", dsn)
 		}})
 	}
 	return out
+}
+
+func truncatePostgres(dsn string) error {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	_, err = db.ExecContext(context.Background(),
+		`TRUNCATE goals, commitments, tasks, interventions, decisions RESTART IDENTITY CASCADE`)
+	return err
 }
 
 func TestParity_CommitmentCRUD(t *testing.T) {

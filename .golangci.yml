@@ -1,11 +1,7 @@
 version: "2"
+
 run:
   timeout: 5m
-  skip-dirs:
-    - internal/adapters # has generated mocks
-  skip-files:
-    - ".*_test.go$"          # skip errcheck in tests
-    - ".*_mock.go$"          # skip generated mocks
 
 linters:
   enable:
@@ -13,10 +9,15 @@ linters:
     - govet
     - staticcheck
     - unused
-    # errcheck disabled globally - too many false positives with Close() in cleanup
-  disable:
-    - errcheck
 
-  settings:
-    govet:
-      check-shadowing: false
+  disable:
+    - errcheck   # too many false positives with Close() in cleanup paths
+
+  exclusions:
+    paths:
+      - internal/adapters   # generated mocks
+    rules:
+      - path: _test\.go
+        linters: [errcheck, gosec]
+      - path: _mock\.go
+        linters: [errcheck, gosec, gocritic]
