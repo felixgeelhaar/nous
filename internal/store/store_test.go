@@ -32,26 +32,45 @@ func backends(t *testing.T) []backend {
 	if dsn := os.Getenv("NOUS_TEST_POSTGRES_DSN"); dsn != "" {
 		out = append(out, backend{"postgres", func() (*store.Conn, error) {
 			// Parity tests share one Postgres database; subtests
-			// inherit each other's rows otherwise. Truncate every
-			// table the parity suite touches before each subtest
-			// runs.
-			if err := truncatePostgres(dsn); err != nil {
+			// inherit each other's rows otherwise. Open the engine
+			// first (runs migrations idempotently under an advisory
+			// lock), then truncate every table the parity suite
+			// touches so each subtest starts empty.
+			conn, err := store.Open(context.Background(), "postgres", dsn)
+			if err != nil {
 				return nil, err
 			}
-			return store.Open(context.Background(), "postgres", dsn)
+			if err := truncatePostgres(dsn); err != nil {
+				_ = conn.Close()
+				return nil, err
+			}
+			return conn, nil
 		}})
 	}
 	return out
 }
 
+// truncatePostgres wipes every table the parity suite touches. The
+// PL/pgSQL block iterates pg_tables so first-time runs (before the
+// migration has created tables) succeed as no-ops.
 func truncatePostgres(dsn string) error {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	_, err = db.ExecContext(context.Background(),
-		`TRUNCATE goals, commitments, tasks, interventions, decisions RESTART IDENTITY CASCADE`)
+	_, err = db.ExecContext(context.Background(), `
+		DO $$
+		DECLARE t text;
+		BEGIN
+			FOR t IN SELECT tablename FROM pg_tables
+				WHERE schemaname = 'public'
+				  AND tablename IN ('goals','commitments','tasks','interventions','decisions')
+			LOOP
+				EXECUTE 'TRUNCATE ' || quote_ident(t) || ' RESTART IDENTITY CASCADE';
+			END LOOP;
+		END $$;
+	`)
 	return err
 }
 
