@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nous — the audit log for AI commitments</title>
+  <meta name="description" content="Nous tracks what your agent promised across calls and scores whether it'll deliver. Replayable risk decisions, MIT-licensed Go binary.">
+  <meta property="og:title" content="Nous — the audit log for AI commitments">
+  <meta property="og:description" content="Know which promises will miss before they do. Self-host. Bring your own LLM.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header>
+  <div class="wrap">
+    <div class="logo" aria-label="Nous">nous<span aria-hidden="true">.</span></div>
+    <nav aria-label="Primary">
+      <a href="#scenario">Scenario</a>
+      <a href="#vs">Vs. alternatives</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#run">Run it</a>
+      <a href="https://github.com/felixgeelhaar/nous">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+
+<section class="hero">
+  <p class="kicker">For platform engineers running LLM agents in production.</p>
+  <h1>Know which promises will miss <span class="accent">before they do.</span></h1>
+  <p class="lede">
+    Nous tracks every commitment your agent makes, scores its risk
+    against time-to-deadline + confidence, and intervenes when it's
+    about to slip. Every decision recorded with inputs and weights —
+    replayable weeks later from <code>/v1/decisions</code>. Self-host,
+    bring your own LLM key, MIT.
+  </p>
+  <div class="cta-row">
+    <a class="cta primary" href="#run">Run the demo</a>
+    <a class="cta" href="https://github.com/felixgeelhaar/nous" aria-label="View Nous on GitHub">★ on GitHub</a>
+    <a class="cta ghost" href="#scenario">See the scenario ↓</a>
+  </div>
+  <ul class="badges" aria-label="At a glance">
+    <li>MIT licensed</li>
+    <li>Go · single binary</li>
+    <li>HTTP · gRPC · MCP</li>
+    <li>SQLite · Postgres · in-memory</li>
+  </ul>
+</section>
+
+<section id="scenario" aria-labelledby="scenario-heading">
+  <p class="kicker">Scenario</p>
+  <h2 id="scenario-heading">An agent says it'll follow up tomorrow. Nous tracks whether it does.</h2>
+  <p>
+    Boot the binary, post a commitment, force one tick of the risk
+    engine, inspect the intervention, replay the decision chain.
+    Deterministic <code>ScriptedExtractor</code> ships by default — no
+    LLM key needed for the page demo. Wire any provider to graduate
+    to real extraction.
+  </p>
+
+  <div class="terminal" role="figure" aria-label="Nous demo walkthrough">
+    <div class="bar" aria-hidden="true">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="label">$ nous · commitment demo</span>
+    </div>
+<pre><code>$ docker run --rm -p 8080:8080 ghcr.io/felixgeelhaar/nous:latest
+
+$ curl -sX POST localhost:8080/v1/extract \
+    -H 'Content-Type: application/json' \
+    -d '{"owner_id":"alice","text":"I will follow up with the client tomorrow"}'
+{
+  "considered": 1,
+  "saved_ids": ["c_4f2"],
+  "decision_id": "d_7a1"
+}
+
+$ curl -sX POST localhost:8080/v1/evaluate     # risk engine tick
+{ "evaluated": 1, "interventions": ["i_9c3"], "decisions": ["d_7a1"] }
+
+$ curl -s localhost:8080/v1/interventions | jq '.[0]'
+{
+  "id": "i_9c3", "commitment_id": "c_4f2",
+  "kind": "nudge", "risk_score": 0.62,
+  "reason": "deadline within 24h, confidence 0.78"
+}
+
+$ curl -s 'localhost:8080/v1/decisions?subject=c_4f2' | jq '.[0]'
+{
+  "id": "d_7a1", "subject": "c_4f2",
+  "inputs":  { "time_to_deadline_hours": 24, "confidence": 0.78 },
+  "weights": { "deadline": 0.6, "confidence": 0.4 },
+  "outcome": { "score": 0.62, "intervention": "nudge" }
+}</code></pre>
+  </div>
+
+  <div class="callout">
+    <strong>Replayable weeks later.</strong>
+    The <code>/v1/decisions</code> chain is the load-bearing feature.
+    Every commitment lifecycle, every risk score, every intervention
+    decision is recorded with the inputs and weights that produced
+    it. Bisect a regression in your scoring logic against the same
+    chain that fired in production.
+  </div>
+</section>
+
+<section id="vs" aria-labelledby="vs-heading">
+  <p class="kicker">How it differs</p>
+  <h2 id="vs-heading">Where Nous fits.</h2>
+  <p>
+    Most agent frameworks orchestrate <em>one call</em>. Nous models
+    the gap between calls — the commitments an agent made, the
+    deadlines they implied, the deliveries it owes — and intervenes
+    when the gap is about to fail.
+  </p>
+  <div class="vs-table" role="table" aria-label="Comparison with related tools">
+    <div class="vs-row vs-head" role="row">
+      <span role="columnheader">Tool</span>
+      <span role="columnheader">Solves</span>
+      <span role="columnheader">Nous's seam</span>
+    </div>
+    <div class="vs-row" role="row">
+      <span role="cell"><strong>LangChain · LlamaIndex</strong></span>
+      <span role="cell">Orchestrate one agent call.</span>
+      <span role="cell">Nous tracks what the agent <em>promised across calls</em> and scores whether it'll deliver — across days, not within one prompt.</span>
+    </div>
+    <div class="vs-row" role="row">
+      <span role="cell"><strong>AutoGen · CrewAI</strong></span>
+      <span role="cell">Multi-agent chat orchestration.</span>
+      <span role="cell">No persistent commitment ledger, no replayable risk chain. When an agent drops a follow-up, it's gone.</span>
+    </div>
+    <div class="vs-row" role="row">
+      <span role="cell"><strong>Raw OpenAI tool-use</strong></span>
+      <span role="cell">Tool calls execute or fail.</span>
+      <span role="cell">Nous models the <em>gap</em> between "agent said it would" and "it actually happened" — and intervenes in that gap.</span>
+    </div>
+    <div class="vs-row" role="row">
+      <span role="cell"><strong>Lindy · Relevance · agentic SaaS</strong></span>
+      <span role="cell">Closed-vendor agent runtime.</span>
+      <span role="cell">Nous is MIT, single Go binary, your DB, your LLM key, every decision replayable.</span>
+    </div>
+  </div>
+
+  <h3 class="subhead">Replay-from-decision</h3>
+  <p>
+    Every risk evaluation persists its inputs, weights, and outcome
+    next to a stable <code>decision_id</code>. Re-run the same
+    commitment through a newer scoring policy without rolling state
+    forward — the audit chain stays intact, the diff lands as a new
+    decision row.
+  </p>
+</section>
+
+<section id="architecture" aria-labelledby="arch-heading">
+  <p class="kicker">Architecture</p>
+  <h2 id="arch-heading">Extract · Score · Intervene · Decide.</h2>
+  <p>
+    LLM is pluggable. The risk engine and decision log are not. Wire
+    any provider for extraction; the rest is deterministic Go.
+  </p>
+
+  <div class="diagram">
+<svg viewBox="0 0 920 360" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" role="img" aria-labelledby="nous-arch-title nous-arch-desc">
+  <title id="nous-arch-title">Nous data flow</title>
+  <desc id="nous-arch-desc">Text in, commitments extracted via LLM (or scripted), risk scored on a tick, interventions emitted, decisions persisted to a replayable log.</desc>
+  <style>
+    .box { fill: #14181d; stroke: #2a323d; stroke-width: 1; }
+    .box-accent { stroke: #7ad1ff; }
+    .label { fill: #e6e8eb; }
+    .label-dim { fill: #8a93a0; font-size: 11px; }
+    .label-accent { fill: #7ad1ff; }
+    .arrow { stroke: #4a5562; stroke-width: 1.5; fill: none; }
+    .arrow-accent { stroke: #7ad1ff; stroke-width: 1.5; fill: none; }
+    @media (prefers-color-scheme: light) {
+      .box { fill: #ffffff; stroke: #d1d5db; }
+      .box-accent { stroke: #0066b3; }
+      .label { fill: #131720; }
+      .label-dim { fill: #5a6272; }
+      .label-accent { fill: #0066b3; }
+      .arrow { stroke: #9aa3af; }
+      .arrow-accent { stroke: #0066b3; }
+    }
+  </style>
+  <defs>
+    <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5562"/>
+    </marker>
+    <marker id="aha3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7ad1ff"/>
+    </marker>
+  </defs>
+
+  <text class="label-dim" x="80" y="40" text-anchor="middle">input</text>
+  <rect class="box" x="20" y="60" width="120" height="50" rx="6"/>
+  <text class="label" x="80" y="82" text-anchor="middle">/v1/extract</text>
+  <text class="label-dim" x="80" y="98" text-anchor="middle">owner + text</text>
+
+  <text class="label-accent" x="240" y="40" text-anchor="middle">extractor</text>
+  <rect class="box box-accent" x="170" y="60" width="140" height="50" rx="6"/>
+  <text class="label" x="240" y="82" text-anchor="middle">LLM · scripted</text>
+  <text class="label-dim" x="240" y="98" text-anchor="middle">anthropic · openai · gemini</text>
+
+  <text class="label-accent" x="430" y="40" text-anchor="middle">commitments</text>
+  <rect class="box box-accent" x="340" y="60" width="180" height="50" rx="6"/>
+  <text class="label" x="430" y="82" text-anchor="middle">commitment ledger</text>
+  <text class="label-dim" x="430" y="98" text-anchor="middle">deadline · confidence · status</text>
+
+  <text class="label-accent" x="640" y="40" text-anchor="middle">risk engine</text>
+  <rect class="box box-accent" x="550" y="60" width="180" height="50" rx="6"/>
+  <text class="label" x="640" y="82" text-anchor="middle">/v1/evaluate · tick</text>
+  <text class="label-dim" x="640" y="98" text-anchor="middle">deadline × confidence</text>
+
+  <text class="label-accent" x="830" y="40" text-anchor="middle">interventions</text>
+  <rect class="box box-accent" x="760" y="60" width="140" height="50" rx="6"/>
+  <text class="label" x="830" y="82" text-anchor="middle">nudge · escalate</text>
+  <text class="label-dim" x="830" y="98" text-anchor="middle">automation hooks</text>
+
+  <path class="arrow" d="M 140 85 L 170 85" marker-end="url(#ah3)"/>
+  <path class="arrow-accent" d="M 310 85 L 340 85" marker-end="url(#aha3)"/>
+  <path class="arrow-accent" d="M 520 85 L 550 85" marker-end="url(#aha3)"/>
+  <path class="arrow-accent" d="M 730 85 L 760 85" marker-end="url(#aha3)"/>
+
+  <rect class="box box-accent" x="170" y="170" width="560" height="80" rx="10"/>
+  <text class="label-accent" x="450" y="200" text-anchor="middle" font-size="15" font-weight="bold">Decision log · /v1/decisions</text>
+  <text class="label-dim" x="450" y="222" text-anchor="middle">Every score recorded with inputs + weights + outcome.</text>
+  <text class="label-dim" x="450" y="240" text-anchor="middle">Replayable. Bisect-able. Survives redeploys.</text>
+
+  <path class="arrow-accent" d="M 430 110 L 430 170" marker-end="url(#aha3)"/>
+  <path class="arrow-accent" d="M 640 110 L 530 170" marker-end="url(#aha3)"/>
+  <path class="arrow-accent" d="M 830 110 L 700 170" marker-end="url(#aha3)"/>
+
+  <rect class="box" x="20" y="290" width="880" height="40" rx="6"/>
+  <text class="label-dim" x="60" y="316">Auth: bearer · JWT · mTLS · per-owner rate limit · CEL input validation. Backend: SQLite · Postgres · in-memory.</text>
+</svg>
+  </div>
+</section>
+
+<section id="run" aria-labelledby="run-heading">
+  <p class="kicker">Run it</p>
+  <h2 id="run-heading">Boot. Post a commitment. Read the audit chain.</h2>
+  <pre><code>docker run --rm -p 8080:8080 ghcr.io/felixgeelhaar/nous:latest
+# or: go install github.com/felixgeelhaar/nous/cmd/nous@latest
+
+curl -sX POST localhost:8080/v1/extract \
+  -H 'Content-Type: application/json' \
+  -d '{"owner_id":"alice","text":"I will follow up tomorrow"}'</code></pre>
+
+  <p>SQLite by default. Postgres for production:</p>
+  <pre><code>NOUS_DB_TYPE=postgres NOUS_DB_DSN="postgres://..." nous</code></pre>
+
+  <p>Wire any LLM provider:</p>
+  <pre><code>NOUS_LLM_PROVIDER=anthropic NOUS_LLM_API_KEY=sk-ant-… nous</code></pre>
+
+  <div class="callout callout-honest">
+    <strong>What's shipped today.</strong>
+    Extract → score → intervene → replay full loop, tested against
+    SQLite, Postgres, and in-memory backends. HTTP + gRPC + MCP all
+    speak the same domain types. Bearer + JWT + mTLS auth, per-owner
+    rate limiting, CEL input validation. Anthropic, OpenAI, Gemini,
+    Bedrock providers all live; <code>ScriptedExtractor</code> keeps
+    the demo deterministic. No dashboard yet — API-first, bring your
+    own UI.
+  </div>
+</section>
+
+<section id="stack" aria-labelledby="stack-heading">
+  <p class="kicker">Cognitive stack context</p>
+  <h2 id="stack-heading">Nous works alone. Plugs into a four-system stack.</h2>
+  <p>
+    Mnemos remembers, Chronos watches time, Nous decides, Praxis
+    executes. Olymp drives the loop. Each is independently usable.
+  </p>
+  <div class="cols">
+    <div class="card"><h3><a href="https://felixgeelhaar.github.io/mnemos/">Mnemos · memory</a></h3><p>Evidence-linked claims with point-in-time replay and contradiction detection.</p></div>
+    <div class="card"><h3><a href="https://felixgeelhaar.github.io/chronos/">Chronos · time</a></h3><p>Pattern detection over time-series data. Typed signals, not threshold alerts.</p></div>
+    <div class="card"><h3><a href="https://felixgeelhaar.github.io/praxis/">Praxis · execution</a></h3><p>Three-verb action layer with idempotency and replay-from-audit.</p></div>
+    <div class="card"><h3><a href="https://felixgeelhaar.github.io/olymp/">Olymp · runtime</a></h3><p>Drives observe → understand → decide → act → learn end-to-end.</p></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div>
+      <div class="logo">nous<span aria-hidden="true">.</span></div>
+      <p class="dim">MIT licensed · single Go binary · HTTP + gRPC + MCP · zero hosted dependencies.</p>
+    </div>
+    <div>
+      <h4>Project</h4>
+      <ul>
+        <li><a href="https://github.com/felixgeelhaar/nous">GitHub repo</a></li>
+        <li><a href="https://github.com/felixgeelhaar/nous/blob/main/ROADMAP.md">Roadmap</a></li>
+        <li><a href="https://github.com/felixgeelhaar/nous/blob/main/SECURITY.md">Security</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Stack</h4>
+      <ul>
+        <li><a href="https://felixgeelhaar.github.io/mnemos/">Mnemos</a></li>
+        <li><a href="https://felixgeelhaar.github.io/chronos/">Chronos</a></li>
+        <li><a href="https://felixgeelhaar.github.io/praxis/">Praxis</a></li>
+        <li><a href="https://felixgeelhaar.github.io/olymp/">Olymp</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li><a href="https://github.com/felixgeelhaar/nous/discussions">Discussions</a></li>
+        <li><a href="https://github.com/felixgeelhaar/nous/issues">Issues</a></li>
+        <li><a href="mailto:felix.geelhaar@gmail.com">Design partners →</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
