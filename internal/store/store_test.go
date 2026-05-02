@@ -75,7 +75,8 @@ func truncatePostgres(dsn string) error {
 }
 
 func TestParity_CommitmentCRUD(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel(): parity tests share one Postgres DSN and the
+	// per-open TRUNCATE would race with concurrent inserts.
 	now := time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC)
 	due := now.Add(24 * time.Hour)
 
@@ -162,7 +163,7 @@ func TestParity_CommitmentCRUD(t *testing.T) {
 }
 
 func TestParity_DecisionCRUD(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel(): see TestParity_CommitmentCRUD.
 	now := time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC)
 
 	for _, be := range backends(t) {
@@ -217,7 +218,7 @@ func TestParity_DecisionCRUD(t *testing.T) {
 }
 
 func TestParity_InterventionCRUD(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel(): see TestParity_CommitmentCRUD.
 	now := time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC)
 
 	for _, be := range backends(t) {
@@ -380,7 +381,7 @@ func TestStore_Ping(t *testing.T) {
 }
 
 func TestParity_GoalAndTaskCRUD(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel(): see TestParity_CommitmentCRUD.
 	now := time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC)
 
 	for _, be := range backends(t) {
