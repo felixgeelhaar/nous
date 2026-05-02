@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nous — the audit log for AI commitments</title>
-  <meta name="description" content="Nous tracks what your agent promised across calls and scores whether it'll deliver. Replayable risk decisions, MIT-licensed Go binary.">
-  <meta property="og:title" content="Nous — the audit log for AI commitments">
-  <meta property="og:description" content="Know which promises will miss before they do. Self-host. Bring your own LLM.">
+  <title>Nous — catch AI promises before they slip</title>
+  <meta name="description" content="When your AI agent says 'I'll follow up tomorrow,' Nous tracks whether it actually did. Risk-score every promise, nudge before things slip, replay the decision later.">
+  <meta property="og:title" content="Nous — catch AI promises before they slip">
+  <meta property="og:description" content="Your agent said 'I'll follow up tomorrow.' Tomorrow came. Did it?">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -29,26 +29,24 @@
 <main id="main" class="wrap">
 
 <section class="hero">
-  <p class="kicker">For platform engineers running LLM agents in production.</p>
-  <h1>Know which promises will miss <span class="accent">before they do.</span></h1>
+  <p class="kicker">For teams whose AI agents make promises across days, not seconds.</p>
+  <h1>Your agent said "I'll follow up tomorrow." <span class="accent">Did it?</span></h1>
   <p class="lede">
-    Nous tracks every commitment your agent makes, scores its risk
-    against time-to-deadline + confidence, and intervenes when it's
-    about to slip. Every decision recorded with inputs and weights —
-    replayable weeks later from <code>/v1/decisions</code>. Self-host,
-    bring your own LLM key, MIT.
+    Nous is the ledger every multi-step agent is missing. Every
+    promise tracked. Every deadline watched. A nudge before the slip
+    — and a replay of the exact decision later, same inputs, same
+    weights, same score. Plug in any LLM. Self-host. MIT.
   </p>
   <div class="cta-row">
     <a class="cta primary" href="#run">Run the demo</a>
     <a class="cta" href="https://github.com/felixgeelhaar/nous" aria-label="View Nous on GitHub">★ on GitHub</a>
-    <a class="cta ghost" href="#scenario">See the scenario ↓</a>
+    <a class="cta ghost" href="#scenario">See it work ↓</a>
   </div>
-  <ul class="badges" aria-label="At a glance">
-    <li>MIT licensed</li>
-    <li>Go · single binary</li>
-    <li>HTTP · gRPC · MCP</li>
-    <li>SQLite · Postgres · in-memory</li>
-  </ul>
+  <div class="use-cases">
+    <div><p><strong>Find dropped follow-ups</strong>Surface the three customer follow-ups your agent forgot last week.</p></div>
+    <div><p><strong>Replay last week's decision</strong>Same inputs, same weights — see exactly why your agent scored a risk the way it did.</p></div>
+    <div><p><strong>Bisect scoring regressions</strong>Compare a new policy against last quarter's chain without rolling state forward.</p></div>
+  </div>
 </section>
 
 <section id="scenario" aria-labelledby="scenario-heading">
@@ -119,39 +117,20 @@ $ curl -s 'localhost:8080/v1/decisions?subject=c_4f2' | jq '.[0]'
   <div class="vs-table" role="table" aria-label="Comparison with related tools">
     <div class="vs-row vs-head" role="row">
       <span role="columnheader">Tool</span>
-      <span role="columnheader">Solves</span>
-      <span role="columnheader">Nous's seam</span>
+      <span role="columnheader">What it solves</span>
+      <span role="columnheader">What Nous adds</span>
     </div>
     <div class="vs-row" role="row">
-      <span role="cell"><strong>LangChain · LlamaIndex</strong></span>
-      <span role="cell">Orchestrate one agent call.</span>
-      <span role="cell">Nous tracks what the agent <em>promised across calls</em> and scores whether it'll deliver — across days, not within one prompt.</span>
-    </div>
-    <div class="vs-row" role="row">
-      <span role="cell"><strong>AutoGen · CrewAI</strong></span>
-      <span role="cell">Multi-agent chat orchestration.</span>
-      <span role="cell">No persistent commitment ledger, no replayable risk chain. When an agent drops a follow-up, it's gone.</span>
-    </div>
-    <div class="vs-row" role="row">
-      <span role="cell"><strong>Raw OpenAI tool-use</strong></span>
-      <span role="cell">Tool calls execute or fail.</span>
-      <span role="cell">Nous models the <em>gap</em> between "agent said it would" and "it actually happened" — and intervenes in that gap.</span>
+      <span role="cell"><strong>LangChain · AutoGen · LlamaIndex</strong></span>
+      <span role="cell">Orchestrate one agent turn.</span>
+      <span role="cell">Tracks what the agent promised <em>across days</em> — every commitment, every deadline, every score, replayable.</span>
     </div>
     <div class="vs-row" role="row">
       <span role="cell"><strong>Lindy · Relevance · agentic SaaS</strong></span>
       <span role="cell">Closed-vendor agent runtime.</span>
-      <span role="cell">Nous is MIT, single Go binary, your DB, your LLM key, every decision replayable.</span>
+      <span role="cell">Self-host. Your DB, your LLM key, every decision replayable. MIT.</span>
     </div>
   </div>
-
-  <h3 class="subhead">Replay-from-decision</h3>
-  <p>
-    Every risk evaluation persists its inputs, weights, and outcome
-    next to a stable <code>decision_id</code>. Re-run the same
-    commitment through a newer scoring policy without rolling state
-    forward — the audit chain stays intact, the diff lands as a new
-    decision row.
-  </p>
 </section>
 
 <section id="architecture" aria-labelledby="arch-heading">
