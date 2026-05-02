@@ -39,15 +39,39 @@ func Open(dsn string) (*Conn, error) {
 	return newConn(db), nil
 }
 
+// migrationLockKey is the Postgres advisory-lock key used to
+// serialise concurrent Open() calls. Multiple test packages opening
+// the same database can otherwise race on the implicit pg_type
+// inserts that CREATE TABLE produces, surfacing as
+// "duplicate key value violates unique constraint
+// pg_type_typname_nsp_index". The advisory lock is connection-scoped
+// (released automatically when the connection drops) so a panicking
+// migration cannot deadlock new opens.
+const migrationLockKey int64 = 0x6e6f7573_6d696772 // "nousmigr"
+
 // runMigrations executes every embedded *.sql file in lexical order
 // inside a single transaction. A `nous_schema_migrations` sentinel
 // table tracks which files have already been applied so repeated
-// Open() calls against a shared database don't replay migrations
-// — concurrent runs would otherwise race on auto-created system
-// types (pg_type_typname_nsp_index unique constraint).
+// Open() calls against a shared database don't replay migrations.
+// All work is gated by a Postgres advisory lock so concurrent
+// connections serialise rather than race on system catalogue inserts.
 func runMigrations(db *sql.DB) error {
 	ctx := context.Background()
-	if _, err := db.ExecContext(ctx, `
+
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire conn: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	if _, err := conn.ExecContext(ctx, "SELECT pg_advisory_lock($1)", migrationLockKey); err != nil {
+		return fmt.Errorf("acquire migration lock: %w", err)
+	}
+	defer func() {
+		_, _ = conn.ExecContext(ctx, "SELECT pg_advisory_unlock($1)", migrationLockKey)
+	}()
+
+	if _, err := conn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS nous_schema_migrations (
 			name        text PRIMARY KEY,
 			applied_at  timestamptz NOT NULL DEFAULT now()
@@ -64,7 +88,7 @@ func runMigrations(db *sql.DB) error {
 			continue
 		}
 		var applied bool
-		if err := db.QueryRowContext(ctx,
+		if err := conn.QueryRowContext(ctx,
 			`SELECT EXISTS(SELECT 1 FROM nous_schema_migrations WHERE name = $1)`,
 			e.Name(),
 		).Scan(&applied); err != nil {
@@ -77,7 +101,7 @@ func runMigrations(db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("read %s: %w", e.Name(), err)
 		}
-		tx, err := db.BeginTx(ctx, nil)
+		tx, err := conn.BeginTx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("begin: %w", err)
 		}
