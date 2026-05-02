@@ -137,10 +137,11 @@ func (m *Metrics) ObserveRiskScore(outcome string, score float64) {
 // SetAdapterHealth updates the adapter health gauge.
 // status should be "healthy", "degraded", or "unhealthy".
 func (m *Metrics) SetAdapterHealth(adapter, status string) {
-	value := 0.0
-	if status == "healthy" {
+	var value float64
+	switch status {
+	case "healthy":
 		value = 1.0
-	} else if status == "degraded" {
+	case "degraded":
 		value = 0.5
 	}
 	switch adapter {

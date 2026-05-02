@@ -61,12 +61,6 @@ func NewBedrockProvider(ctx context.Context, region, modelID string, opts ...Bed
 	return p, nil
 }
 
-// bedrockClient is the minimal interface BedrockProvider depends on.
-// Tests substitute this without standing up the full SDK client.
-type bedrockClient interface {
-	InvokeModel(ctx context.Context, in *bedrockruntime.InvokeModelInput, opts ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error)
-}
-
 // ExtractCommitments calls Bedrock's InvokeModel with an
 // Anthropic-flavoured payload and parses the JSON reply. The
 // Anthropic-on-Bedrock body shape mirrors the Messages API.
