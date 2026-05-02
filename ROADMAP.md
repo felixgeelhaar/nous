@@ -84,13 +84,13 @@
 
 ### 2. Praxis Integration (Month 2)
 
-**Prerequisite:** Praxis service must exist
+**Prerequisite:** Praxis service must exist — _shipped, adapter speaks live HTTP._
 
-- [x] Build Praxis gRPC adapter (`internal/adapters/praxis/`) — stub adapter implementing `ports.PraxisClient` ships disabled-by-default; methods return `ErrPraxisDisabled` until a Praxis address is configured. When a Praxis service ships, only the proto wiring inside the adapter changes.
+- [x] Build Praxis adapter (`internal/adapters/praxis/`) — speaks Praxis's three-verb HTTP API (`/v1/capabilities`, `/v1/actions`, `/v1/actions/{id}/dry-run`). Empty `Addr` still produces a "disabled" adapter that returns `ErrPraxisDisabled`.
 - [x] Implement `ports.PraxisClient` interface
 - [x] Wire into evaluator pipeline (`praxisDryRun` on automation-class interventions)
 - [x] Add to main entrypoint with TLS + auth (`NOUS_PRAXIS_ADDR/TLS_CERT/BEARER_TOKEN`)
-- [ ] e2e tests with mock Praxis server (blocked on a deployed Praxis)
+- [x] e2e tests with httptest fake Praxis server (`http_test.go`: ListCapabilities/Execute/DryRun + upstream-error propagation + execute-failure surfacing)
 
 ### 3. AI/LLM Improvements (Month 2-3)
 

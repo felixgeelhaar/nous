@@ -5,6 +5,7 @@ All notable changes to Nous are documented here. The format follows [Keep a Chan
 ## [Unreleased]
 
 ### Added
+- **Praxis live HTTP adapter** — `internal/adapters/praxis/grpc.go` rewritten from gRPC stub to real HTTP client speaking Praxis's three-verb REST surface (`/v1/capabilities`, `/v1/actions`, `/v1/actions/{id}/dry-run`). Wire types mirror Praxis's domain JSON shapes locally, so Nous stays decoupled from `praxis/internal/domain`. Bearer auth and TLS-cert pinning remain opt-in. Empty `Addr` still produces a "disabled" adapter (`ErrPraxisDisabled`). Tests: `http_test.go` covers list/execute/dry-run + upstream-error propagation + execute-failure surfacing against an `httptest` fake.
 - **Server-side TLS + mTLS** — `NOUS_TLS_CERT_FILE` + `NOUS_TLS_KEY_FILE` enable TLS on HTTP and gRPC simultaneously. `NOUS_MTLS_CLIENT_CA_FILE` upgrades to mutual TLS (clients must present a cert signed by the CA). Helpers: `serverTLSConfig`, `serverTransportCredentials`.
 - **Praxis pipeline wiring** — `pipeline.Evaluator` accepts a `ports.PraxisClient`. Automation-class interventions trigger an out-of-band `praxisDryRun` so the audit trail captures predicted side effects. Praxis stays opt-in; `NOUS_PRAXIS_ADDR` empty means no-op.
 - **Standalone-mode tolerance** — `/v1/health` only checks Mnemos / Chronos / Praxis adapters when their `NOUS_*_ADDR` is configured. Empty addr = adapter unconfigured = no health impact. Pipeline soft-fails enrichment to nil. Operators can run Nous as a single binary without any cognitive-stack dependencies; wire upstreams later without code changes.
@@ -18,7 +19,7 @@ All notable changes to Nous are documented here. The format follows [Keep a Chan
 - **Gemini provider** (`internal/llm/gemini.go`) — Generative Language API with `responseMimeType: application/json`. Default model `gemini-2.5-flash`.
 - **Bedrock provider** (`internal/llm/bedrock.go`) — Amazon Bedrock InvokeModel with the Anthropic-on-Bedrock request shape. AWS credentials from the standard credential chain (env, shared config, instance profile, IRSA).
 - **Few-shot prompts + versioning** — `PromptBuilder` accepts `WithFewShotExamples(...)` and `WithSystemPrompt(...)`; `PromptVersion = "v2"`; canonical default examples ship.
-- **Praxis stub adapter** (`internal/adapters/praxis/grpc.go`) — `ports.PraxisClient` implementation. With no `Addr` configured, returns `ErrPraxisDisabled`; when a Praxis service ships only the proto wiring inside the adapter changes.
+- **Praxis stub adapter** (`internal/adapters/praxis/grpc.go`) — `ports.PraxisClient` implementation. With no `Addr` configured, returns `ErrPraxisDisabled`. (Superseded above by the live HTTP adapter once Praxis shipped.)
 - HTTP `GET /v1/decisions` and `GET /v1/decisions/{id}` endpoints for audit replay (parity with the gRPC surface).
 - `internal/llm/anthropic.go` and `internal/llm/openai.go` — real HTTP transport for both providers, base-URL override for OpenAI-compatible endpoints, shared `parseDrafts` helper that strips code fences and trims preambles.
 - `internal/transport/http/auth.go` and `internal/transport/grpc/auth.go` — inbound bearer-token middleware/interceptor enforced on `/v1/*` paths (health and metrics stay open). Constant-time compare; empty `NOUS_AUTH_TOKEN` disables auth.
