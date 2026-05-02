@@ -162,79 +162,47 @@ $ curl -s 'localhost:8080/v1/decisions?subject=c_4f2' | jq '.[0]'
     any provider for extraction; the rest is deterministic Go.
   </p>
 
-  <div class="diagram">
-<svg viewBox="0 0 920 360" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" role="img" aria-labelledby="nous-arch-title nous-arch-desc">
-  <title id="nous-arch-title">Nous data flow</title>
-  <desc id="nous-arch-desc">Text in, commitments extracted via LLM (or scripted), risk scored on a tick, interventions emitted, decisions persisted to a replayable log.</desc>
-  <style>
-    .box { fill: #14181d; stroke: #2a323d; stroke-width: 1; }
-    .box-accent { stroke: #7ad1ff; }
-    .label { fill: #e6e8eb; }
-    .label-dim { fill: #8a93a0; font-size: 11px; }
-    .label-accent { fill: #7ad1ff; }
-    .arrow { stroke: #4a5562; stroke-width: 1.5; fill: none; }
-    .arrow-accent { stroke: #7ad1ff; stroke-width: 1.5; fill: none; }
-    @media (prefers-color-scheme: light) {
-      .box { fill: #ffffff; stroke: #d1d5db; }
-      .box-accent { stroke: #0066b3; }
-      .label { fill: #131720; }
-      .label-dim { fill: #5a6272; }
-      .label-accent { fill: #0066b3; }
-      .arrow { stroke: #9aa3af; }
-      .arrow-accent { stroke: #0066b3; }
-    }
-  </style>
-  <defs>
-    <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5562"/>
-    </marker>
-    <marker id="aha3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7ad1ff"/>
-    </marker>
-  </defs>
+  <div class="diagram" role="img" aria-label="Nous data flow: text in, commitments extracted, risk scored on a tick, interventions emitted, every decision persisted to a replayable log.">
+    <div class="pipe" style="--cols: 5">
+      <div class="pipe-cell">
+        <span class="pipe-kicker">input</span>
+        <p class="pipe-title">/v1/extract</p>
+        <p class="pipe-sub">owner + text</p>
+      </div>
+      <div class="pipe-cell accent">
+        <span class="pipe-kicker">extractor</span>
+        <p class="pipe-title">LLM · scripted</p>
+        <p class="pipe-sub">anthropic · openai · gemini · bedrock</p>
+      </div>
+      <div class="pipe-cell accent">
+        <span class="pipe-kicker">commitments</span>
+        <p class="pipe-title">commitment ledger</p>
+        <p class="pipe-sub">deadline · confidence · status</p>
+      </div>
+      <div class="pipe-cell accent">
+        <span class="pipe-kicker">risk engine</span>
+        <p class="pipe-title">/v1/evaluate · tick</p>
+        <p class="pipe-sub">deadline × confidence</p>
+      </div>
+      <div class="pipe-cell accent">
+        <span class="pipe-kicker">interventions</span>
+        <p class="pipe-title">nudge · escalate</p>
+        <p class="pipe-sub">automation hooks</p>
+      </div>
+    </div>
 
-  <text class="label-dim" x="80" y="40" text-anchor="middle">input</text>
-  <rect class="box" x="20" y="60" width="120" height="50" rx="6"/>
-  <text class="label" x="80" y="82" text-anchor="middle">/v1/extract</text>
-  <text class="label-dim" x="80" y="98" text-anchor="middle">owner + text</text>
+    <div class="pipe-band accent">
+      <h4>Decision log · /v1/decisions</h4>
+      <p>Every score recorded with inputs, weights, and outcome. Replayable. Bisect-able. Survives redeploys.</p>
+    </div>
 
-  <text class="label-accent" x="240" y="40" text-anchor="middle">extractor</text>
-  <rect class="box box-accent" x="170" y="60" width="140" height="50" rx="6"/>
-  <text class="label" x="240" y="82" text-anchor="middle">LLM · scripted</text>
-  <text class="label-dim" x="240" y="98" text-anchor="middle">anthropic · openai · gemini</text>
-
-  <text class="label-accent" x="430" y="40" text-anchor="middle">commitments</text>
-  <rect class="box box-accent" x="340" y="60" width="180" height="50" rx="6"/>
-  <text class="label" x="430" y="82" text-anchor="middle">commitment ledger</text>
-  <text class="label-dim" x="430" y="98" text-anchor="middle">deadline · confidence · status</text>
-
-  <text class="label-accent" x="640" y="40" text-anchor="middle">risk engine</text>
-  <rect class="box box-accent" x="550" y="60" width="180" height="50" rx="6"/>
-  <text class="label" x="640" y="82" text-anchor="middle">/v1/evaluate · tick</text>
-  <text class="label-dim" x="640" y="98" text-anchor="middle">deadline × confidence</text>
-
-  <text class="label-accent" x="830" y="40" text-anchor="middle">interventions</text>
-  <rect class="box box-accent" x="760" y="60" width="140" height="50" rx="6"/>
-  <text class="label" x="830" y="82" text-anchor="middle">nudge · escalate</text>
-  <text class="label-dim" x="830" y="98" text-anchor="middle">automation hooks</text>
-
-  <path class="arrow" d="M 140 85 L 170 85" marker-end="url(#ah3)"/>
-  <path class="arrow-accent" d="M 310 85 L 340 85" marker-end="url(#aha3)"/>
-  <path class="arrow-accent" d="M 520 85 L 550 85" marker-end="url(#aha3)"/>
-  <path class="arrow-accent" d="M 730 85 L 760 85" marker-end="url(#aha3)"/>
-
-  <rect class="box box-accent" x="170" y="170" width="560" height="80" rx="10"/>
-  <text class="label-accent" x="450" y="200" text-anchor="middle" font-size="15" font-weight="bold">Decision log · /v1/decisions</text>
-  <text class="label-dim" x="450" y="222" text-anchor="middle">Every score recorded with inputs + weights + outcome.</text>
-  <text class="label-dim" x="450" y="240" text-anchor="middle">Replayable. Bisect-able. Survives redeploys.</text>
-
-  <path class="arrow-accent" d="M 430 110 L 430 170" marker-end="url(#aha3)"/>
-  <path class="arrow-accent" d="M 640 110 L 530 170" marker-end="url(#aha3)"/>
-  <path class="arrow-accent" d="M 830 110 L 700 170" marker-end="url(#aha3)"/>
-
-  <rect class="box" x="20" y="290" width="880" height="40" rx="6"/>
-  <text class="label-dim" x="60" y="316">Auth: bearer · JWT · mTLS · per-owner rate limit · CEL input validation. Backend: SQLite · Postgres · in-memory.</text>
-</svg>
+    <div class="pipe-band">
+      <div class="row">
+        <strong>Storage</strong><span>SQLite (default) · Postgres · in-memory</span>
+        <strong>Surface</strong><span>HTTP · gRPC · MCP — same domain types across all three transports</span>
+        <strong>Auth</strong><span>bearer · JWT · mTLS · per-owner rate limit · CEL input validation</span>
+      </div>
+    </div>
   </div>
 </section>
 
