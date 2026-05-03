@@ -285,6 +285,9 @@ func (e *Evaluator) recordDecision(
 		"commitment_id": c.ID.String(),
 		"signal_count":  len(signals),
 	}
+	if e.risk != nil {
+		dec.Weights = domain.DecisionWeights(e.risk.Weights())
+	}
 	dec.Outcome = domain.DecisionOutcome{
 		"risk_score": a.Score,
 		"factors":    a.Factors,

@@ -79,6 +79,20 @@ func New(cfg Config) *Engine {
 	return &Engine{cfg: cfg}
 }
 
+// Weights returns the active scoring coefficients as a flat map.
+// Used by the evaluator to persist the policy snapshot alongside
+// each Decision so the chain stays replayable when scoring weights
+// change later.
+func (e *Engine) Weights() map[string]float64 {
+	return map[string]float64{
+		"overdue":                 e.cfg.OverdueWeight,
+		"due_soon":                e.cfg.DueSoonWeight,
+		"due_soon_window_seconds": e.cfg.DueSoonWindow.Seconds(),
+		"confidence":              e.cfg.ConfidenceWeight,
+		"signal":                  e.cfg.SignalWeight,
+	}
+}
+
 // EvaluateCommitment scores the given commitment relative to `now`,
 // optionally enriched by Chronos signals. Memories are accepted for
 // future enrichment (recurrence patterns, similar past failures);

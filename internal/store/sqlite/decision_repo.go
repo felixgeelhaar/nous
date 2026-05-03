@@ -31,12 +31,20 @@ func (r *decisionRepo) Save(ctx context.Context, d domain.Decision) error {
 	if err != nil {
 		return fmt.Errorf("decision: encode outcome: %w", err)
 	}
+	var weights any
+	if len(d.Weights) > 0 {
+		w, err := encJSON(d.Weights)
+		if err != nil {
+			return fmt.Errorf("decision: encode weights: %w", err)
+		}
+		weights = w
+	}
 	if _, err := r.db.ExecContext(ctx,
 		`INSERT INTO decisions
-            (id, subject, context_refs, inputs, outcome, reason, confidence, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (id, subject, context_refs, inputs, weights, outcome, reason, confidence, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO NOTHING`,
-		d.ID.String(), d.Subject, contextRefs, inputs, outcome,
+		d.ID.String(), d.Subject, contextRefs, inputs, weights, outcome,
 		d.Reason, d.Confidence, d.CreatedAt.UTC()); err != nil {
 		return fmt.Errorf("decision: save: %w", err)
 	}
@@ -44,7 +52,7 @@ func (r *decisionRepo) Save(ctx context.Context, d domain.Decision) error {
 }
 
 const selectDecisionColumns = `
-    id, subject, context_refs, inputs, outcome, reason, confidence, created_at`
+    id, subject, context_refs, inputs, weights, outcome, reason, confidence, created_at`
 
 func (r *decisionRepo) Get(ctx context.Context, id domain.DecisionID) (domain.Decision, error) {
 	row := r.db.QueryRowContext(ctx,
@@ -88,11 +96,12 @@ func (r *decisionRepo) ListBySubject(ctx context.Context, subject string, limit 
 
 func scanDecision(s rowScanner) (domain.Decision, error) {
 	var (
-		idStr        string
-		contextRefs  string
-		inputs       string
-		outcome      string
-		createdAt    time.Time
+		idStr       string
+		contextRefs string
+		inputs      string
+		weights     sql.NullString
+		outcome     string
+		createdAt   time.Time
 	)
 	d := domain.Decision{}
 	if err := s.Scan(
@@ -100,6 +109,7 @@ func scanDecision(s rowScanner) (domain.Decision, error) {
 		&d.Subject,
 		&contextRefs,
 		&inputs,
+		&weights,
 		&outcome,
 		&d.Reason,
 		&d.Confidence,
@@ -117,6 +127,11 @@ func scanDecision(s rowScanner) (domain.Decision, error) {
 	}
 	if err := decJSON(inputs, &d.Inputs); err != nil {
 		return domain.Decision{}, fmt.Errorf("decision: decode inputs: %w", err)
+	}
+	if weights.Valid && weights.String != "" {
+		if err := decJSON(weights.String, &d.Weights); err != nil {
+			return domain.Decision{}, fmt.Errorf("decision: decode weights: %w", err)
+		}
 	}
 	if err := decJSON(outcome, &d.Outcome); err != nil {
 		return domain.Decision{}, fmt.Errorf("decision: decode outcome: %w", err)

@@ -59,6 +59,14 @@ func main() {
 	logger := slog.New(observability.NewHandler(slog.NewJSONHandler(os.Stdout, nil)))
 	slog.SetDefault(logger)
 
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		if err := runMCP(); err != nil {
+			logger.Error("mcp server failed", "error", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if err := run(); err != nil {
 		logger.Error("startup failed", "error", err)
 		os.Exit(1)

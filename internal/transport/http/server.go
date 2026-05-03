@@ -328,14 +328,15 @@ type commitmentJSON struct {
 }
 
 type decisionJSON struct {
-	ID          string                 `json:"id"`
-	Subject     string                 `json:"subject"`
-	ContextRefs []sourceRef            `json:"context_refs,omitempty"`
-	Inputs      map[string]any         `json:"inputs,omitempty"`
-	Outcome     map[string]any         `json:"outcome,omitempty"`
-	Reason      string                 `json:"reason"`
-	Confidence  float64                `json:"confidence"`
-	CreatedAt   time.Time              `json:"created_at"`
+	ID          string             `json:"id"`
+	Subject     string             `json:"subject"`
+	ContextRefs []sourceRef        `json:"context_refs,omitempty"`
+	Inputs      map[string]any     `json:"inputs,omitempty"`
+	Weights     map[string]float64 `json:"weights,omitempty"`
+	Outcome     map[string]any     `json:"outcome,omitempty"`
+	Reason      string             `json:"reason"`
+	Confidence  float64            `json:"confidence"`
+	CreatedAt   time.Time          `json:"created_at"`
 }
 
 type interventionJSON struct {
@@ -370,6 +371,7 @@ func decisionToJSON(d domain.Decision) decisionJSON {
 		ID:         d.ID.String(),
 		Subject:    d.Subject,
 		Inputs:     map[string]any(d.Inputs),
+		Weights:    map[string]float64(d.Weights),
 		Outcome:    map[string]any(d.Outcome),
 		Reason:     d.Reason,
 		Confidence: d.Confidence,

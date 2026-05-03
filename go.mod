@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.50.6
 	github.com/felixgeelhaar/axi-go v1.2.0
 	github.com/felixgeelhaar/bolt v1.3.0
+	github.com/felixgeelhaar/mcp-go v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/cel-go v0.28.0
 	github.com/google/uuid v1.6.0
@@ -40,6 +41,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.1 // indirect
 	github.com/aws/smithy-go v1.25.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/felixgeelhaar/fortify v1.2.1 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect

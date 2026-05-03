@@ -17,6 +17,7 @@ type Decision struct {
 	Subject     string
 	ContextRefs []SourceRef
 	Inputs      DecisionInputs
+	Weights     DecisionWeights
 	Outcome     DecisionOutcome
 	Reason      string
 	Confidence  float64
@@ -27,6 +28,18 @@ type Decision struct {
 // be replayed offline. Stored as JSON; structure is intentionally
 // loose because every decision type has a different shape.
 type DecisionInputs map[string]any
+
+// DecisionWeights captures the scoring weights the policy applied
+// when this decision was produced. Persisted alongside Inputs so the
+// chain is replayable across policy changes — re-running last
+// week's commitment with today's policy produces a clear delta
+// against the recorded weights.
+//
+// Convention: keys mirror Input keys for the weighted fields (e.g.
+// "deadline", "confidence"); values are the scoring coefficients in
+// effect at decision time. Empty when the decision wasn't produced
+// by a weighted scorer.
+type DecisionWeights map[string]float64
 
 // DecisionOutcome captures what Nous actually decided. Same shape as
 // inputs: free-form JSON keyed by the decision subject.

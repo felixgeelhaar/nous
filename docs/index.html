@@ -35,7 +35,7 @@
     Nous is the ledger every multi-step agent is missing. Every
     promise tracked. Every deadline watched. A nudge before the slip
     — and a replay of the exact decision later, same inputs, same
-    score. Plug in any LLM. Self-host. MIT.
+    weights, same score. Plug in any LLM. Self-host. MIT.
   </p>
   <div class="cta-row">
     <a class="cta primary" href="#run">Run the demo</a>
@@ -44,7 +44,7 @@
   </div>
   <div class="use-cases">
     <div><p><strong>Find dropped follow-ups</strong>Surface the three customer follow-ups your agent forgot last week.</p></div>
-    <div><p><strong>Replay last week's decision</strong>Same inputs, same score — see exactly why your agent flagged the risk it did.</p></div>
+    <div><p><strong>Replay last week's decision</strong>Same inputs, same weights — see exactly why your agent flagged the risk it did, and diff against today's policy.</p></div>
     <div><p><strong>Bisect scoring regressions</strong>Compare a new policy against last quarter's chain without rolling state forward.</p></div>
   </div>
 </section>
@@ -90,6 +90,7 @@ $ curl -s 'localhost:8080/v1/decisions?subject=c_4f2' | jq '.[0]'
 {
   "id": "d_7a1", "subject": "c_4f2",
   "inputs":  { "time_to_deadline_hours": 24, "confidence": 0.78 },
+  "weights": { "overdue": 0.6, "due_soon": 0.3, "confidence": 0.2, "signal": 0.15 },
   "outcome": { "score": 0.62, "intervention": "nudge" }
 }</code></pre>
   </div>
@@ -98,9 +99,9 @@ $ curl -s 'localhost:8080/v1/decisions?subject=c_4f2' | jq '.[0]'
     <strong>Replayable weeks later.</strong>
     The <code>/v1/decisions</code> chain is the load-bearing feature.
     Every commitment lifecycle, every risk score, every intervention
-    decision is recorded with its inputs and outcome. Bisect a
-    regression in your scoring logic against the same chain that
-    fired in production.
+    decision is recorded with its inputs, weights, and outcome.
+    Bisect a regression in your scoring policy against the same
+    chain that fired in production.
   </div>
 </section>
 
@@ -171,13 +172,13 @@ $ curl -s 'localhost:8080/v1/decisions?subject=c_4f2' | jq '.[0]'
 
     <div class="pipe-band accent">
       <h4>Decision log · /v1/decisions</h4>
-      <p>Every score recorded with its inputs and outcome. Replayable. Bisect-able. Survives redeploys.</p>
+      <p>Every score recorded with its inputs, weights, and outcome. Replayable. Bisect-able. Survives redeploys.</p>
     </div>
 
     <div class="pipe-band">
       <div class="row">
         <strong>Storage</strong><span>SQLite (default) · Postgres · in-memory</span>
-        <strong>Surface</strong><span>HTTP · gRPC — same domain types across both transports</span>
+        <strong>Surface</strong><span>HTTP · gRPC · MCP — same domain types across all three transports</span>
         <strong>Auth</strong><span>bearer · JWT · mTLS · per-owner rate limit · CEL input validation</span>
       </div>
     </div>
@@ -203,7 +204,7 @@ curl -sX POST localhost:8080/v1/extract \
   <div class="callout callout-honest">
     <strong>What's shipped today.</strong>
     Extract → score → intervene → replay full loop, tested against
-    SQLite, Postgres, and in-memory backends. HTTP + gRPC both
+    SQLite, Postgres, and in-memory backends. HTTP + gRPC + MCP all
     speak the same domain types. Bearer + JWT + mTLS auth, per-owner
     rate limiting, CEL input validation. Anthropic, OpenAI, Gemini,
     Bedrock providers all live; <code>ScriptedExtractor</code> keeps
@@ -233,7 +234,7 @@ curl -sX POST localhost:8080/v1/extract \
   <div class="wrap footer-grid">
     <div>
       <div class="logo">nous<span aria-hidden="true">.</span></div>
-      <p class="dim">MIT licensed · single Go binary · HTTP + gRPC · zero hosted dependencies.</p>
+      <p class="dim">MIT licensed · single Go binary · HTTP + gRPC + MCP · zero hosted dependencies.</p>
     </div>
     <div>
       <h4>Project</h4>
