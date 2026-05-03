@@ -4,7 +4,15 @@ All notable changes to Nous are documented here. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [0.3.0] — 2026-05-03
+
+Replayable scoring + MCP transport.
+
 ### Added
+- **`DecisionWeights` field on `domain.Decision`** — every recorded decision now persists the scoring coefficients alongside Inputs and Outcome. A replay against a newer policy can diff exactly because the weights that produced last week's score are stamped on the row. New `risk.Engine.Weights()` snapshot helper. Migration `002_decision_weights.sql` adds a nullable `weights` column to `decisions` on sqlite + postgres. HTTP `decisionJSON` exposes the field.
+- **MCP stdio transport** — new `nous mcp` subcommand. Four tools (`nous_extract`, `nous_evaluate`, `nous_list_interventions`, `nous_list_decisions`) proxy through the running HTTP server. Same pipeline, same audit chain — MCP is a transport, not a parallel code path. Configure via `NOUS_HTTP_URL` (default `http://localhost:8080`) and optional `NOUS_AUTH_TOKEN`.
 - **Praxis live HTTP adapter** — `internal/adapters/praxis/grpc.go` rewritten from gRPC stub to real HTTP client speaking Praxis's three-verb REST surface (`/v1/capabilities`, `/v1/actions`, `/v1/actions/{id}/dry-run`). Wire types mirror Praxis's domain JSON shapes locally, so Nous stays decoupled from `praxis/internal/domain`. Bearer auth and TLS-cert pinning remain opt-in. Empty `Addr` still produces a "disabled" adapter (`ErrPraxisDisabled`). Tests: `http_test.go` covers list/execute/dry-run + upstream-error propagation + execute-failure surfacing against an `httptest` fake.
 - **Server-side TLS + mTLS** — `NOUS_TLS_CERT_FILE` + `NOUS_TLS_KEY_FILE` enable TLS on HTTP and gRPC simultaneously. `NOUS_MTLS_CLIENT_CA_FILE` upgrades to mutual TLS (clients must present a cert signed by the CA). Helpers: `serverTLSConfig`, `serverTransportCredentials`.
 - **Praxis pipeline wiring** — `pipeline.Evaluator` accepts a `ports.PraxisClient`. Automation-class interventions trigger an out-of-band `praxisDryRun` so the audit trail captures predicted side effects. Praxis stays opt-in; `NOUS_PRAXIS_ADDR` empty means no-op.
