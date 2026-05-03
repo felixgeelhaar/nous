@@ -116,3 +116,38 @@ func hasFactor(factors []risk.RiskFactor, t string) bool {
 	}
 	return false
 }
+
+func TestEngine_Weights_Snapshots(t *testing.T) {
+	t.Parallel()
+	cfg := risk.Config{
+		OverdueWeight:    0.6,
+		DueSoonWeight:    0.3,
+		DueSoonWindow:    2 * time.Hour,
+		ConfidenceWeight: 0.2,
+		SignalWeight:     0.15,
+	}
+	got := risk.New(cfg).Weights()
+	want := map[string]float64{
+		"overdue":                 0.6,
+		"due_soon":                0.3,
+		"due_soon_window_seconds": 7200,
+		"confidence":              0.2,
+		"signal":                  0.15,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("weights len = %d, want %d", len(got), len(want))
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("weights[%q] = %v, want %v", k, got[k], v)
+		}
+	}
+}
+
+func TestEngine_Weights_ReflectsCustomConfig(t *testing.T) {
+	t.Parallel()
+	got := risk.New(risk.Config{OverdueWeight: 0.99}).Weights()
+	if got["overdue"] != 0.99 {
+		t.Errorf("custom overdue weight not propagated: %+v", got)
+	}
+}
