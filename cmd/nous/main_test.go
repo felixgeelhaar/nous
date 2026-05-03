@@ -156,3 +156,27 @@ func TestBuildCommitmentExtractor_BedrockReturnsExtractor(t *testing.T) {
 		t.Fatal("nil")
 	}
 }
+
+func TestBuildCommitmentExtractor_OllamaUsesOpenAIProvider(t *testing.T) {
+	t.Parallel()
+	// Ollama exposes an OpenAI-compatible API; the dispatch should
+	// hand back an LLMExtractor regardless of whether NOUS_LLM_API_KEY
+	// is set (the placeholder "ollama" is injected internally).
+	c := config.LLMConfig{Provider: "ollama"}
+	got := buildCommitmentExtractor(c)
+	if _, ok := got.(*llm.LLMExtractor); !ok {
+		t.Fatalf("ollama: not LLMExtractor: %T", got)
+	}
+}
+
+func TestBuildCommitmentExtractor_OllamaHonoursBaseURLAndModel(t *testing.T) {
+	t.Parallel()
+	c := config.LLMConfig{
+		Provider: "ollama",
+		BaseURL:  "http://ollama:11434/v1",
+		Model:    "llama3.2",
+	}
+	if got := buildCommitmentExtractor(c); got == nil {
+		t.Fatal("nil extractor")
+	}
+}

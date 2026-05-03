@@ -494,6 +494,25 @@ func buildCommitmentExtractor(c config.LLMConfig) llm.CommitmentExtractor {
 			return llm.NewScriptedExtractor()
 		}
 		return llm.NewLLMExtractor(p, llm.WithContextBudget(llm.BudgetFor("bedrock")))
+	case "ollama":
+		// Ollama exposes an OpenAI-compatible /v1/chat/completions
+		// endpoint. Reuse the OpenAI provider; Ollama ignores the API
+		// key so a placeholder string is fine. Default base URL points
+		// at a local Ollama daemon; override via NOUS_LLM_BASE_URL when
+		// the daemon lives elsewhere (e.g. http://ollama:11434/v1 in
+		// Docker compose).
+		base := c.BaseURL
+		if base == "" {
+			base = "http://localhost:11434/v1"
+		}
+		model := c.Model
+		if model == "" {
+			model = "llama3.2"
+		}
+		return llm.NewLLMExtractor(
+			llm.NewOpenAIProvider("ollama", model, llm.WithOpenAIBaseURL(base)),
+			llm.WithContextBudget(llm.BudgetFor("openai")),
+		)
 	default:
 		return llm.NewScriptedExtractor()
 	}

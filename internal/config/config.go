@@ -186,13 +186,14 @@ func (c Config) Validate() error {
 		return fmt.Errorf("config: tick_interval must be positive")
 	}
 	switch c.LLM.Provider {
-	case "", "anthropic", "openai", "gemini", "bedrock":
+	case "", "anthropic", "openai", "gemini", "bedrock", "ollama":
 		// ok
 	default:
 		return fmt.Errorf("config: unsupported llm provider %q", c.LLM.Provider)
 	}
-	// Bedrock auth comes from the AWS credential chain — no API key required.
-	if c.LLM.Provider != "" && c.LLM.Provider != "bedrock" && c.LLM.APIKey == "" {
+	// Bedrock auth comes from the AWS credential chain; ollama is a
+	// local server with no auth — neither requires NOUS_LLM_API_KEY.
+	if c.LLM.Provider != "" && c.LLM.Provider != "bedrock" && c.LLM.Provider != "ollama" && c.LLM.APIKey == "" {
 		return fmt.Errorf("config: NOUS_LLM_API_KEY required when NOUS_LLM_PROVIDER=%s", c.LLM.Provider)
 	}
 	return nil
